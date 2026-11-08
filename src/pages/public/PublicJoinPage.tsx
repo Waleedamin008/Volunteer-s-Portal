@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StorageService } from '../../lib/storage';
+import { CloudSyncService } from '../../lib/cloudSync';
 import { DynamicFormRenderer } from '../../components/forms/DynamicFormRenderer';
 import { Logo } from '../../components/brand/Logo';
 import { CheckCircle2, AlertCircle, Copy, Check, ArrowLeft, Heart, Shield } from 'lucide-react';
@@ -12,6 +13,11 @@ export const PublicJoinPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [, setSyncTick] = useState(0);
+
+  React.useEffect(() => {
+    CloudSyncService.pullAllFromCloud().then(() => setSyncTick((v) => v + 1));
+  }, [slug]);
 
   if (!slug) {
     return (

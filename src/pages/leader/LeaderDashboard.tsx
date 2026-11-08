@@ -23,6 +23,13 @@ export const LeaderDashboard: React.FC = () => {
   const { user, activeTeam, assignedTeams } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
+  const [, setSyncTick] = useState(0);
+
+  React.useEffect(() => {
+    const handleSync = () => setSyncTick((v) => v + 1);
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
 
   if (!activeTeam) {
     return (

@@ -24,6 +24,13 @@ export const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+  const [, setSyncTick] = useState(0);
+
+  React.useEffect(() => {
+    const handleSync = () => setSyncTick((v) => v + 1);
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
 
   const stats = StorageService.getAdminStats();
   const teams = StorageService.getTeams();

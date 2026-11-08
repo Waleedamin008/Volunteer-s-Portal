@@ -52,6 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     loadUserData();
+
+    const handleSync = () => {
+      loadUserData();
+    };
+
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
   }, []);
 
   const login = (email: string, password = ''): boolean => {

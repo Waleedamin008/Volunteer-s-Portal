@@ -6,6 +6,12 @@ import { StorageService } from '../../lib/storage';
 export const AdminApplicationsPage: React.FC = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  React.useEffect(() => {
+    const handleSync = () => setRefreshTrigger((prev) => prev + 1);
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
+
   const applications = StorageService.getApplications();
   const teams = StorageService.getTeams();
 

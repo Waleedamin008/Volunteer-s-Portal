@@ -33,6 +33,12 @@ export const AdminTeamsPage: React.FC = () => {
     setTeams(StorageService.getTeams());
   };
 
+  React.useEffect(() => {
+    const handleSync = () => refreshTeams();
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
+
   const handleCopyLink = (slug: string) => {
     const url = `${window.location.origin}/join/${slug}`;
     navigator.clipboard.writeText(url);

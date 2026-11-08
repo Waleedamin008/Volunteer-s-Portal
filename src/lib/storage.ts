@@ -13,6 +13,7 @@ import {
   FormField,
 } from '../types';
 import { DEFAULT_FORM_FIELDS } from './constants';
+import { CloudSyncService } from './cloudSync';
 
 const STORAGE_KEYS = {
   TEAMS: 'mj_teams_prod_v2',
@@ -155,6 +156,7 @@ export const StorageService = {
     const passwords = getStored<Record<string, string>>(STORAGE_KEYS.PASSWORDS, INITIAL_PASSWORDS);
     passwords[email.toLowerCase().trim()] = newPassword;
     setStored(STORAGE_KEYS.PASSWORDS, passwords);
+    CloudSyncService.updateUserPassword(email, newPassword);
   },
 
   changeLeaderPassword(
@@ -198,6 +200,7 @@ export const StorageService = {
       entity_type: 'user',
       entity_id: newUser.id,
     });
+    CloudSyncService.pushUser(newUser, initialPassword);
     return newUser;
   },
 
@@ -256,6 +259,7 @@ export const StorageService = {
       metadata: { email: user.email, name: user.full_name },
     });
 
+    CloudSyncService.deleteUser(userId);
     return { success: true };
   },
 
@@ -297,7 +301,7 @@ export const StorageService = {
     }
 
     // Auto-create initial default form config for this team
-    this.createInitialFormForTeam(newTeam);
+    const formConfig = this.createInitialFormForTeam(newTeam);
 
     this.logActivity({
       team_id: newTeam.id,
@@ -307,6 +311,8 @@ export const StorageService = {
       entity_type: 'team',
       entity_id: newTeam.id,
     });
+
+    CloudSyncService.pushTeam(newTeam, formConfig);
 
     return newTeam;
   },
@@ -341,6 +347,8 @@ export const StorageService = {
       entity_id: id,
     });
 
+    CloudSyncService.updateTeam(id, updates);
+
     return teams[idx];
   },
 
@@ -374,6 +382,8 @@ export const StorageService = {
       entity_type: 'team',
       entity_id: id,
     });
+
+    CloudSyncService.deleteTeam(id);
 
     return { success: true };
   },
@@ -464,6 +474,8 @@ export const StorageService = {
       configs.push(config);
     }
     setStored(STORAGE_KEYS.FORM_CONFIGS, configs);
+    const updated = idx !== -1 ? configs[idx] : config;
+    CloudSyncService.pushFormConfig(updated);
   },
 
   publishFormConfig(configId: string, currentUserId?: string): { config: FormConfig; version: FormVersion } {
@@ -488,6 +500,8 @@ export const StorageService = {
     };
     versions.push(newVersion);
     setStored(STORAGE_KEYS.FORM_VERSIONS, versions);
+
+    CloudSyncService.pushFormConfig(configs[idx]);
 
     const team = this.getTeamById(configs[idx].team_id);
     this.logActivity({
@@ -605,6 +619,8 @@ export const StorageService = {
       metadata: { reference: referenceNumber },
     });
 
+    CloudSyncService.pushApplication(newApp);
+
     return { application: newApp, team };
   },
 
@@ -644,6 +660,8 @@ export const StorageService = {
       metadata: { oldStatus, newStatus },
     });
 
+    CloudSyncService.updateApplicationStatus(applicationId, newStatus, oldStatus, changedByName);
+
     return apps[idx];
   },
 
@@ -680,6 +698,8 @@ export const StorageService = {
       entity_id: applicationId,
       metadata: { applicantName: app.full_name, reference: app.reference_number },
     });
+
+    CloudSyncService.deleteApplication(applicationId);
 
     return { success: true, application: app };
   },
@@ -721,6 +741,8 @@ export const StorageService = {
       entity_id: applicationId,
     });
 
+    CloudSyncService.pushNote(newNote);
+
     return newNote;
   },
 
@@ -759,6 +781,7 @@ export const StorageService = {
     };
     logs.unshift(newLog);
     setStored(STORAGE_KEYS.ACTIVITY, logs.slice(0, 100));
+    CloudSyncService.pushActivity(newLog);
   },
 
   // Statistics calculation
