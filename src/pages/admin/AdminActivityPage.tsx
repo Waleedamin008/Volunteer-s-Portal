@@ -5,6 +5,13 @@ import { StorageService } from '../../lib/storage';
 
 export const AdminActivityPage: React.FC = () => {
   const [teamFilter, setTeamFilter] = useState('all');
+  const [tick, setTick] = useState(0);
+
+  React.useEffect(() => {
+    const handleSync = () => setTick((v) => v + 1);
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
 
   const teams = StorageService.getTeams();
   const logs = StorageService.getActivityLogs(teamFilter);

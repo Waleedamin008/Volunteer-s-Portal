@@ -266,7 +266,11 @@ export const StorageService = {
 
   // Teams
   getTeams(): Team[] {
-    return getStored<Team[]>(STORAGE_KEYS.TEAMS, INITIAL_TEAMS);
+    const raw = getStored<Team[]>(STORAGE_KEYS.TEAMS, INITIAL_TEAMS);
+    return raw.map((t) => ({
+      ...t,
+      description: (t.description || '').replace(/<!--__LEADER__:(.*?)-->/g, '').trim(),
+    }));
   },
 
   getTeamById(id: string): Team | undefined {
@@ -329,6 +333,12 @@ export const StorageService = {
       updates.leader_email = leader?.email;
       if (leader) {
         this.assignLeaderToTeam(id, leader.id);
+      } else {
+        updates.leader_id = undefined;
+        updates.leader_name = undefined;
+        updates.leader_email = undefined;
+        const memberships = this.getMemberships().filter((m) => m.team_id !== id);
+        setStored(STORAGE_KEYS.MEMBERSHIPS, memberships);
       }
     }
 

@@ -29,6 +29,13 @@ export const AdminTeamDetailPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [isEditingLeader, setIsEditingLeader] = useState(false);
   const [selectedLeaderId, setSelectedLeaderId] = useState('');
+  const [, setTick] = useState(0);
+
+  React.useEffect(() => {
+    const handleSync = () => setTick((v) => v + 1);
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
 
   if (!id) return <div>Invalid team ID</div>;
 
@@ -59,6 +66,7 @@ export const AdminTeamDetailPage: React.FC = () => {
   const handleLeaderSave = () => {
     StorageService.updateTeam(team.id, { leader_id: selectedLeaderId });
     setIsEditingLeader(false);
+    setTick((v) => v + 1);
   };
 
   const handleToggleStatus = async () => {

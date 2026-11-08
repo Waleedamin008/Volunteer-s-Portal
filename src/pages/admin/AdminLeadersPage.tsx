@@ -54,6 +54,12 @@ export const AdminLeadersPage: React.FC = () => {
     setUsers(StorageService.getUsers().filter((u) => u.role === 'team_leader'));
   };
 
+  React.useEffect(() => {
+    const handleSync = () => refreshList();
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
+
   const handleCreateLeader = (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError('');

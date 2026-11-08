@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS public.teams (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
 );
 
+-- Ensure leader columns exist if table was already created
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS leader_id TEXT;
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS leader_name TEXT;
+ALTER TABLE public.teams ADD COLUMN IF NOT EXISTS leader_email TEXT;
+
 -- 2. Form Configurations Table
 CREATE TABLE IF NOT EXISTS public.form_configs (
     id TEXT PRIMARY KEY,
