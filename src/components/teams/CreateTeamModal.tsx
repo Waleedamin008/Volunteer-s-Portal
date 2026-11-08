@@ -19,6 +19,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
   const [slug, setSlug] = useState('');
   const [leaderId, setLeaderId] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
@@ -35,7 +36,7 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
     setSlug(generatedSlug);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -56,8 +57,9 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      const newTeam = StorageService.createTeam({
+      const newTeam = await StorageService.createTeam({
         name: name.trim(),
         description: description.trim(),
         slug: slug.trim(),
@@ -68,6 +70,8 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
       onClose();
     } catch (err: any) {
       setError(err?.message || 'Failed to create team.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -179,10 +183,20 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-semibold text-white bg-brand-navy hover:bg-brand-darkNavy rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className="px-5 py-2 text-xs font-semibold text-white bg-brand-navy hover:bg-brand-darkNavy disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
             >
-              <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
-              <span>Create Team & Form</span>
+              {isSubmitting ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Creating Team...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+                  <span>Create Team & Form</span>
+                </>
+              )}
             </button>
           </div>
         </form>

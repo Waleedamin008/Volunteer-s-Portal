@@ -14,7 +14,7 @@ import {
 } from '../types';
 import { DEFAULT_FORM_FIELDS } from './constants';
 import { CloudSyncService } from './cloudSync';
-import { generateUUID } from './uuid';
+import { generateUUID, isValidUUID } from './uuid';
 
 const STORAGE_KEYS = {
   TEAMS: 'mj_teams_prod_v2',
@@ -279,7 +279,7 @@ export const StorageService = {
     return this.getTeams().find((t) => t.slug.toLowerCase() === normalized);
   },
 
-  createTeam(data: { name: string; description: string; slug: string; leader_id?: string }): Team {
+  async createTeam(data: { name: string; description: string; slug: string; leader_id?: string }): Promise<Team> {
     const teams = this.getTeams();
     const leader = data.leader_id ? this.getUserById(data.leader_id) : undefined;
     const newTeam: Team = {
@@ -313,7 +313,7 @@ export const StorageService = {
       entity_id: newTeam.id,
     });
 
-    CloudSyncService.pushTeam(newTeam, formConfig);
+    await CloudSyncService.pushTeam(newTeam, formConfig);
 
     return newTeam;
   },
@@ -559,17 +559,17 @@ export const StorageService = {
     return this.getApplications().find((a) => a.id === id);
   },
 
-  submitApplication(submission: {
+  async submitApplication(submission: {
     team_slug: string;
     answers: Record<string, any>;
-  }): { application: Application; team: Team } {
+  }): Promise<{ application: Application; team: Team }> {
     const team = this.getTeamBySlug(submission.team_slug);
     if (!team) throw new Error('Invalid or unknown recruitment team link.');
     if (team.status !== 'active') throw new Error('Recruitment for this team is currently closed.');
 
-    const formConfig = this.getFormConfigByTeamId(team.id);
-    if (!formConfig || formConfig.status !== 'published') {
-      throw new Error('This recruitment form is currently not open for new submissions.');
+    let formConfig = this.getFormConfigByTeamId(team.id);
+    if (!formConfig) {
+      formConfig = this.createInitialFormForTeam(team);
     }
 
     const latestVersion = this.getLatestPublishedVersion(formConfig.id);
@@ -595,7 +595,7 @@ export const StorageService = {
       reference_number: referenceNumber,
       team_id: team.id,
       team_name: team.name,
-      form_version_id: latestVersion?.id,
+      form_version_id: isValidUUID(latestVersion?.id || '') ? latestVersion?.id : undefined,
       full_name: fullName,
       phone: phone,
       email: email,
@@ -620,7 +620,10 @@ export const StorageService = {
       metadata: { reference: referenceNumber },
     });
 
-    CloudSyncService.pushApplication(newApp);
+    const pushRes = await CloudSyncService.pushApplication(newApp);
+    if (pushRes && !pushRes.success) {
+      console.warn('Cloud sync error for new application, stored locally:', pushRes.error);
+    }
 
     return { application: newApp, team };
   },

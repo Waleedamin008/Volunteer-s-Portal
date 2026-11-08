@@ -1,4 +1,5 @@
 import { getSupabaseClient, isSupabaseActive } from './supabase';
+import { generateUUID, isValidUUID } from './uuid';
 import {
   Team,
   FormConfig,
@@ -55,13 +56,18 @@ export const CloudSyncService = {
 
     isSyncing = true;
     try {
-      const [teamsRes, configsRes, appsRes] = await Promise.allSettled([
+      const [teamsRes, configsRes, appsRes, answersRes] = await Promise.allSettled([
         client.from('teams').select('*'),
         client.from('form_configs').select('*'),
         client.from('applications').select('*').order('submitted_at', { ascending: false }),
+        client.from('application_answers').select('*'),
       ]);
 
       let hasChanges = false;
+
+      // Map team names for fast lookup
+      const teamsList = teamsRes.status === 'fulfilled' && !teamsRes.value.error && teamsRes.value.data ? teamsRes.value.data : [];
+      const teamNameMap = new Map<string, string>(teamsList.map((t: any) => [t.id, t.name]));
 
       // Hydrate Teams (preserving local leader assignment metadata)
       if (teamsRes.status === 'fulfilled' && !teamsRes.value.error && teamsRes.value.data) {
@@ -86,15 +92,27 @@ export const CloudSyncService = {
         hasChanges = true;
       }
 
+      // Group answers by application_id
+      const answersList = answersRes.status === 'fulfilled' && !answersRes.value.error && answersRes.value.data ? answersRes.value.data : [];
+      const answersByAppId = new Map<string, Record<string, any>>();
+      answersList.forEach((ans: any) => {
+        if (!answersByAppId.has(ans.application_id)) {
+          answersByAppId.set(ans.application_id, {});
+        }
+        answersByAppId.get(ans.application_id)![ans.field_key] = ans.answer_json;
+      });
+
       // Hydrate Applications
       if (appsRes.status === 'fulfilled' && !appsRes.value.error && appsRes.value.data) {
         const currentApps: any[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPLICATIONS) || '[]');
         const localAppMap = new Map<string, any>(currentApps.map((a) => [a.id, a]));
         const mergedApps = appsRes.value.data.map((a: any) => {
           const local = localAppMap.get(a.id);
+          const cloudAnswers = answersByAppId.get(a.id);
           return {
             ...a,
-            answers: local?.answers || {},
+            team_name: teamNameMap.get(a.team_id) || local?.team_name || 'Recruitment Team',
+            answers: cloudAnswers && Object.keys(cloudAnswers).length > 0 ? cloudAnswers : (local?.answers || {}),
             notes_count: local?.notes_count || 0,
           };
         });
@@ -128,36 +146,58 @@ export const CloudSyncService = {
     }
   },
 
-  // Start Realtime subscription across all relevant tables
+  // Start Realtime subscription and cross-tab event listeners across all relevant tables
   startRealtimeListener(): void {
     const client = getSupabaseClient();
-    if (!client || realtimeSubscription) return;
+    if (!client) return;
 
-    try {
-      realtimeSubscription = client
-        .channel('portal-sync-channel')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public' },
-          (payload) => {
-            console.log('Realtime cloud change received:', payload.table, payload.eventType);
-            this.pullAllFromCloud();
-          }
-        )
-        .subscribe();
-    } catch (err) {
-      console.error('Failed to initialize Realtime listener:', err);
+    if (!realtimeSubscription) {
+      try {
+        realtimeSubscription = client
+          .channel('portal-sync-channel')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public' },
+            (payload) => {
+              console.log('Realtime cloud change received:', payload.table, payload.eventType);
+              this.pullAllFromCloud();
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.error('Failed to initialize Realtime listener:', err);
+      }
+    }
+
+    // Auto-sync on window focus & visibility change across Chrome tabs
+    if (typeof window !== 'undefined' && !(window as any).__mj_sync_listeners_attached) {
+      (window as any).__mj_sync_listeners_attached = true;
+
+      window.addEventListener('focus', () => {
+        this.pullAllFromCloud();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          this.pullAllFromCloud();
+        }
+      });
+
+      // Heartbeat sync every 10 seconds across active tabs
+      setInterval(() => {
+        this.pullAllFromCloud();
+      }, 10000);
     }
   },
 
   // Push single team mutation to Supabase in background
-  async pushTeam(team: Team, formConfig?: FormConfig): Promise<void> {
+  async pushTeam(team: Team, formConfig?: FormConfig): Promise<{ success: boolean; error?: any }> {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client) return { success: true };
 
     try {
       const cleanTeam = {
-        id: team.id,
+        id: isValidUUID(team.id) ? team.id : generateUUID(),
         name: team.name,
         description: team.description || '',
         slug: team.slug,
@@ -169,14 +209,15 @@ export const CloudSyncService = {
       const { error: tErr } = await client.from('teams').upsert(cleanTeam, { onConflict: 'id' });
       if (tErr) {
         console.error('Cloud team upsert error:', tErr);
+        return { success: false, error: tErr };
       } else {
         console.log('Successfully posted team to Supabase:', team.name);
       }
 
       if (formConfig) {
         const cleanConfig = {
-          id: formConfig.id,
-          team_id: formConfig.team_id,
+          id: isValidUUID(formConfig.id) ? formConfig.id : generateUUID(),
+          team_id: cleanTeam.id,
           title: formConfig.title,
           description: formConfig.description || '',
           welcome_message: formConfig.welcome_message || '',
@@ -196,8 +237,10 @@ export const CloudSyncService = {
           .upsert(cleanConfig, { onConflict: 'id' });
         if (cErr) console.error('Cloud form config upsert error:', cErr);
       }
+      return { success: true };
     } catch (err) {
       console.error('Cloud team push failed:', err);
+      return { success: false, error: err };
     }
   },
 
@@ -227,8 +270,15 @@ export const CloudSyncService = {
     if (!client) return;
 
     try {
-      await client.from('teams').delete().eq('id', id);
+      const { data: teamApps } = await client.from('applications').select('id').eq('team_id', id);
+      if (teamApps && teamApps.length > 0) {
+        const appIds = teamApps.map((a: any) => a.id);
+        await client.from('application_answers').delete().in('application_id', appIds);
+        await client.from('application_notes').delete().in('application_id', appIds);
+        await client.from('applications').delete().eq('team_id', id);
+      }
       await client.from('form_configs').delete().eq('team_id', id);
+      await client.from('teams').delete().eq('id', id);
     } catch (err) {
       console.error('Cloud team delete failed:', err);
     }
@@ -265,16 +315,16 @@ export const CloudSyncService = {
     }
   },
 
-  async pushApplication(app: Application): Promise<void> {
+  async pushApplication(app: Application): Promise<{ success: boolean; error?: any }> {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client) return { success: true };
 
     try {
       const cleanApp = {
-        id: app.id,
+        id: isValidUUID(app.id) ? app.id : generateUUID(),
         reference_number: app.reference_number,
         team_id: app.team_id,
-        form_version_id: app.form_version_id || null,
+        form_version_id: isValidUUID(app.form_version_id || '') ? app.form_version_id : null,
         full_name: app.full_name,
         phone: app.phone,
         email: app.email,
@@ -285,11 +335,35 @@ export const CloudSyncService = {
       const { error: aErr } = await client.from('applications').insert(cleanApp);
       if (aErr) {
         console.error('Cloud application insert error:', aErr);
+        return { success: false, error: aErr };
       } else {
         console.log('Successfully posted application to Supabase:', app.reference_number);
       }
+
+      // Save application answers in Supabase application_answers table
+      if (app.answers && typeof app.answers === 'object') {
+        const answersEntries = Object.entries(app.answers)
+          .filter(([_, val]) => val !== undefined && val !== null && val !== '')
+          .map(([key, val]) => ({
+            id: generateUUID(),
+            application_id: cleanApp.id,
+            field_key: key,
+            field_label: key,
+            field_type: 'short_text',
+            answer_json: val,
+            created_at: new Date().toISOString(),
+          }));
+
+        if (answersEntries.length > 0) {
+          const { error: ansErr } = await client.from('application_answers').insert(answersEntries);
+          if (ansErr) console.error('Cloud application_answers insert error:', ansErr);
+        }
+      }
+
+      return { success: true };
     } catch (err) {
       console.error('Cloud application push failed:', err);
+      return { success: false, error: err };
     }
   },
 
@@ -314,6 +388,8 @@ export const CloudSyncService = {
     if (!client) return;
 
     try {
+      await client.from('application_answers').delete().eq('application_id', id);
+      await client.from('application_notes').delete().eq('application_id', id);
       await client.from('applications').delete().eq('id', id);
     } catch (err) {
       console.error('Cloud application delete failed:', err);

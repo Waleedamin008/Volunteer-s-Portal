@@ -1,23 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { StorageService } from '../../lib/storage';
 import { CloudSyncService } from '../../lib/cloudSync';
 import { DynamicFormRenderer } from '../../components/forms/DynamicFormRenderer';
 import { Logo } from '../../components/brand/Logo';
-import { CheckCircle2, AlertCircle, Copy, Check, ArrowLeft, Heart, Shield } from 'lucide-react';
+import { Team, FormConfig } from '../../types';
+import { CheckCircle2, AlertCircle, Copy, Check, Shield, Loader2 } from 'lucide-react';
 
 export const PublicJoinPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
+  const [isLoading, setIsLoading] = useState(true);
+  const [team, setTeam] = useState<Team | null>(null);
+  const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [submittedRef, setSubmittedRef] = useState<string | null>(null);
   const [submittedName, setSubmittedName] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [, setSyncTick] = useState(0);
 
-  React.useEffect(() => {
-    CloudSyncService.pullAllFromCloud().then(() => setSyncTick((v) => v + 1));
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadData() {
+      if (!slug) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+
+      // Check local storage first
+      const localTeam = StorageService.getTeamBySlug(slug);
+      if (localTeam && isMounted) {
+        setTeam(localTeam);
+        const config = StorageService.getFormConfigByTeamId(localTeam.id);
+        if (config) setFormConfig(config);
+      }
+
+      // Always pull freshest from Supabase cloud database
+      await CloudSyncService.pullAllFromCloud();
+
+      if (!isMounted) return;
+
+      const syncedTeam = StorageService.getTeamBySlug(slug);
+      if (syncedTeam) {
+        setTeam(syncedTeam);
+        let config = StorageService.getFormConfigByTeamId(syncedTeam.id);
+        if (!config) {
+          config = StorageService.createInitialFormForTeam(syncedTeam);
+        }
+        setFormConfig(config);
+      } else {
+        setTeam(null);
+        setFormConfig(null);
+      }
+
+      setIsLoading(false);
+    }
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
+
+  const handleFormSubmit = async (formData: Record<string, any>) => {
+    if (!team) return;
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await StorageService.submitApplication({
+        team_slug: team.slug,
+        answers: formData,
+      });
+
+      setSubmittedRef(res.application.reference_number);
+      setSubmittedName(res.application.full_name);
+    } catch (err: any) {
+      console.error('Submission failed:', err);
+      setErrorMsg(err?.message || 'Failed to submit application. Please check your connection and fields.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyRef = () => {
+    if (!submittedRef) return;
+    navigator.clipboard.writeText(submittedRef);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-brand-ivoryBg flex items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-2xl max-w-md w-full text-center shadow-lg border border-gray-100 space-y-4">
+          <Logo size="lg" variant="emblem" theme="light" className="mx-auto" />
+          <div className="flex items-center justify-center gap-2 text-brand-navy">
+            <Loader2 className="w-5 h-5 animate-spin text-brand-gold" />
+            <span className="text-sm font-semibold">Loading volunteer registration...</span>
+          </div>
+          <p className="text-xs text-brand-mutedGray">
+            Connecting to MAQAM-E-JOUD Foundation recruitment portal
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!slug) {
     return (
@@ -33,23 +124,7 @@ export const PublicJoinPage: React.FC = () => {
     );
   }
 
-  let team = StorageService.getTeamBySlug(slug);
-
-  // If team is not found in localStorage (e.g. an applicant accessing the link on a new device/browser
-  // before central DB syncing), gracefully provision the team and default form so the form is usable.
-  if (!team && slug && slug.length >= 2) {
-    const formattedName = slug
-      .split('-')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ');
-    team = StorageService.createTeam({
-      name: formattedName,
-      description: `Official volunteer recruitment pipeline for ${formattedName}.`,
-      slug: slug.toLowerCase().trim(),
-    });
-  }
-
-  // Check if team exists and is active
+  // Check if team exists
   if (!team) {
     return (
       <div className="min-h-screen bg-brand-ivoryBg flex items-center justify-center p-4">
@@ -88,8 +163,6 @@ export const PublicJoinPage: React.FC = () => {
     );
   }
 
-  const formConfig = StorageService.getFormConfigByTeamId(team.id);
-
   if (!formConfig || formConfig.status !== 'published') {
     return (
       <div className="min-h-screen bg-brand-ivoryBg flex items-center justify-center p-4">
@@ -103,32 +176,6 @@ export const PublicJoinPage: React.FC = () => {
       </div>
     );
   }
-
-  const handleFormSubmit = (formData: Record<string, any>) => {
-    setIsSubmitting(true);
-    setErrorMsg('');
-
-    try {
-      const res = StorageService.submitApplication({
-        team_slug: team.slug,
-        answers: formData,
-      });
-
-      setSubmittedRef(res.application.reference_number);
-      setSubmittedName(res.application.full_name);
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to submit application. Please check your fields.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCopyRef = () => {
-    if (!submittedRef) return;
-    navigator.clipboard.writeText(submittedRef);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
 
   return (
     <div className="min-h-screen bg-brand-ivoryBg py-8 px-4 sm:px-6 flex flex-col items-center">
@@ -153,7 +200,7 @@ export const PublicJoinPage: React.FC = () => {
                   Application Received Successfully!
                 </h2>
                 <p className="text-xs sm:text-sm text-brand-mutedGray mt-2 max-w-md mx-auto">
-                  Thank you, <strong>{submittedName}</strong>. Your volunteer application for the{' '}
+                  Thank you, <strong>{submittedName}</strong>. Your volunteer application for{' '}
                   <strong>{team.name}</strong> has been registered in our system.
                 </p>
               </div>
@@ -169,7 +216,7 @@ export const PublicJoinPage: React.FC = () => {
                   </span>
                   <button
                     onClick={handleCopyRef}
-                    className="p-1.5 rounded-md hover:bg-brand-gold/20 text-brand-navy transition-colors"
+                    className="p-1.5 rounded-md hover:bg-brand-gold/20 text-brand-navy transition-colors cursor-pointer"
                     title="Copy Reference Number"
                   >
                     {copied ? (
@@ -200,7 +247,7 @@ export const PublicJoinPage: React.FC = () => {
                     setSubmittedRef(null);
                     setSubmittedName('');
                   }}
-                  className="px-6 py-2.5 rounded-xl border border-gray-300 text-brand-navy hover:bg-gray-50 text-xs font-semibold transition-colors"
+                  className="px-6 py-2.5 rounded-xl border border-gray-300 text-brand-navy hover:bg-gray-50 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Submit Another Response
                 </button>
@@ -239,4 +286,3 @@ export const PublicJoinPage: React.FC = () => {
     </div>
   );
 };
-

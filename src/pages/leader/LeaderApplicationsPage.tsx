@@ -8,6 +8,12 @@ export const LeaderApplicationsPage: React.FC = () => {
   const { user, activeTeam } = useAuth();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  React.useEffect(() => {
+    const handleSync = () => setRefreshTrigger((prev) => prev + 1);
+    window.addEventListener('mj_data_synced', handleSync);
+    return () => window.removeEventListener('mj_data_synced', handleSync);
+  }, []);
+
   if (!activeTeam) {
     return (
       <div className="p-8 text-center bg-white rounded-2xl border border-gray-200">
