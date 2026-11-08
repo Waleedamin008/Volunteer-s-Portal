@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <!-- Radial & Linear Gradients -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E5C383" />
+      <stop offset="50%" stop-color="#D0A860" />
+      <stop offset="100%" stop-color="#B3893C" />
+    </linearGradient>
+    <linearGradient id="navyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#001830" />
+      <stop offset="100%" stop-color="#001028" />
+    </linearGradient>
+    <filter id="subtleGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Medallion -->
+  <circle cx="200" cy="200" r="190" fill="url(#navyGradient)" stroke="url(#goldGradient)" stroke-width="4" />
+  
+  <!-- Outer Decorative Ring -->
+  <circle cx="200" cy="200" r="176" fill="none" stroke="#D0A860" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.8" />
+  <circle cx="200" cy="200" r="170" fill="none" stroke="#D0A860" stroke-width="1" opacity="0.6" />
+
+  <!-- 8-Pointed Islamic Geometric Star Layer 1 -->
+  <g transform="translate(200, 160)" stroke="url(#goldGradient)" stroke-width="2" fill="none">
+    <rect x="-65" y="-65" width="130" height="130" rx="4" />
+    <rect x="-65" y="-65" width="130" height="130" rx="4" transform="rotate(45)" />
+    <!-- Inner concentric star -->
+    <rect x="-48" y="-48" width="96" height="96" rx="2" stroke="#E5C383" stroke-width="1.2" opacity="0.75" />
+    <rect x="-48" y="-48" width="96" height="96" rx="2" stroke="#E5C383" stroke-width="1.2" transform="rotate(45)" opacity="0.75" />
+  </g>
+
+  <!-- Central Crest / Symbol of JOUD (Bounty & Generosity) -->
+  <!-- Crescent & Star -->
+  <g transform="translate(200, 128)">
+    <!-- Crescent -->
+    <path d="M 0,-32 A 28 28 0 1 0 28,0 A 24 24 0 1 1 0,-32 Z" fill="url(#goldGradient)" />
+    <!-- 8-pointed star in crest -->
+    <polygon points="12,-16 14,-10 20,-10 15,-6 17,0 12,-3 7,0 9,-6 4,-10 10,-10" fill="#E5C383" />
+  </g>
+
+  <!-- Open Book of Knowledge / Hands of Service -->
+  <g transform="translate(200, 175)" fill="url(#goldGradient)">
+    <!-- Left Wing/Page -->
+    <path d="M -3 6 C -18 -8, -38 -8, -48 0 C -48 16, -20 22, -3 20 Z" opacity="0.95" />
+    <!-- Right Wing/Page -->
+    <path d="M 3 6 C 18 -8, 38 -8, 48 0 C 48 16, 20 22, 3 20 Z" opacity="0.95" />
+    <!-- Central Spine & Quill/Spire -->
+    <path d="M 0,22 L 0,-14 L -2,-12 L 0,-18 L 2,-12 L 0,-14 Z" stroke="#E5C383" stroke-width="1.5" />
+  </g>
+
+  <!-- Urdu Inscription: مقامِ جود -->
+  <text x="200" y="240" text-anchor="middle" fill="#E5C383" font-family="'Noto Nastaliq Urdu', serif, system-ui" font-size="28" font-weight="700" letter-spacing="1">
+    مقامِ جود فاؤنڈیشن
+  </text>
+
+  <!-- English Foundation Title -->
+  <text x="200" y="280" text-anchor="middle" fill="#FFFFFF" font-family="'Inter', sans-serif" font-size="16" font-weight="700" letter-spacing="4">
+    MAQAM-E-JOUD
+  </text>
+  <text x="200" y="302" text-anchor="middle" fill="#D0A860" font-family="'Inter', sans-serif" font-size="11" font-weight="600" letter-spacing="3">
+    FOUNDATION
+  </text>
+
+  <!-- Motto / Tagline -->
+  <path d="M 120 325 L 280 325" stroke="#D0A860" stroke-width="0.8" opacity="0.4" />
+  <circle cx="200" cy="325" r="3" fill="#D0A860" />
+  <text x="200" y="342" text-anchor="middle" fill="#F0E8E0" font-family="'Inter', sans-serif" font-size="9.5" font-weight="400" letter-spacing="2" opacity="0.85">
+    SERVING WITH COMPASSION &amp; EXCELLENCE
+  </text>
+</svg>
