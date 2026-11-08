@@ -423,9 +423,8 @@ export const StorageService = {
     const newConfig: FormConfig = {
       id: `form_cfg_${team.id}`,
       team_id: team.id,
-      title: `${team.name} — Volunteer Application`,
-      description: `Join MAQAM-E-JOUD Foundation's ${team.name}. We look forward to welcoming passionate individuals dedicated to community welfare and service.`,
-      welcome_message: 'Bismillah. Welcome to the MAQAM-E-JOUD Foundation volunteer recruitment portal. Please fill in the details below honestly and completely.',
+      title: `Maqam-e-Joud Foundation | Volunteer & Membership Registration`,
+      description: 'Asslamualaikum💙 Thank you for your interest in joining Maqam-e-Joud Welfare. We believe that even small acts of kindness can create a huge impact in society.',
       submit_button_text: 'Submit Volunteer Application',
       success_message: 'Thank you for your interest in joining MAQAM-E-JOUD Foundation. Your application has been received successfully. Our team will contact you soon, in sha Allah.',
       slug: team.slug,
@@ -562,9 +561,9 @@ export const StorageService = {
 
     const fullName = String(
       submission.answers['f_full_name'] ||
-        submission.answers['name'] ||
-        submission.answers['fullName'] ||
-        'Anonymous Applicant'
+      submission.answers['name'] ||
+      submission.answers['fullName'] ||
+      'Anonymous Applicant'
     ).trim();
 
     const phone = String(
