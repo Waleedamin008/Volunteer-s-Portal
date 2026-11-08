@@ -433,3 +433,4 @@ CREATE POLICY "Allow all for activity_logs" ON public.activity_logs FOR ALL USIN
     </div>
   );
 };
+

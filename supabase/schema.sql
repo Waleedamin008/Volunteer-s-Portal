@@ -176,3 +176,4 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.activity_logs;
   EXCEPTION WHEN OTHERS THEN NULL; END;
 END $$;
+
