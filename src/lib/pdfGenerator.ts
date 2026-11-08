@@ -1,11 +1,21 @@
 import jsPDF from 'jspdf';
 import { Application, FormConfig, Team } from '../types';
 
-export const generateApplicantPDF = (
+const loadImage = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+};
+
+export const generateApplicantPDF = async (
   app: Application,
   team?: Team,
   formConfig?: FormConfig
-): void => {
+): Promise<void> => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -35,17 +45,34 @@ export const generateApplicantPDF = (
   doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
   doc.rect(0, 38, pageWidth, 2.5, 'F');
 
+  // Try to render the official logo image
+  let textOffset = margin + 14;
+  try {
+    const logoImg = await loadImage('/Logo Maqam-e-JOUD.jpeg').catch(() => loadImage('/logo.jpeg'));
+    doc.addImage(logoImg, 'JPEG', margin, 7, 24, 24);
+    textOffset = margin + 28;
+  } catch (e) {
+    // Fallback badge if image load fails
+    doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
+    doc.circle(margin + 5, 19, 6.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
+    doc.text('MJ', margin + 2.5, 22.5);
+    textOffset = margin + 15;
+  }
+
   // Foundation Title
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('MAQAM-E-JOUD FOUNDATION', margin + 14, 16);
+  doc.setFontSize(15);
+  doc.text('MAQAM-E-JOUD FOUNDATION', textOffset, 16);
 
   // Urdu Subtitle
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(LIGHT_GOLD[0], LIGHT_GOLD[1], LIGHT_GOLD[2]);
-  doc.text('VOLUNTEER MANAGEMENT SYSTEM  |  OFFICIAL APPLICANT DOSSIER', margin + 14, 23);
+  doc.text('VOLUNTEER MANAGEMENT SYSTEM  |  OFFICIAL APPLICANT DOSSIER', textOffset, 23);
 
   // Reference Code Box on right
   doc.setFillColor(DARK_NAVY[0], DARK_NAVY[1], DARK_NAVY[2]);
@@ -62,14 +89,6 @@ export const generateApplicantPDF = (
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(255, 255, 255);
   doc.text(app.reference_number, pageWidth - margin - 53, 22);
-
-  // Left side icon / emblem placeholder circle
-  doc.setFillColor(GOLD[0], GOLD[1], GOLD[2]);
-  doc.circle(margin + 5, 19, 6.5, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(NAVY[0], NAVY[1], NAVY[2]);
-  doc.text('MJ', margin + 2.5, 22.5);
 
   y = 48;
 

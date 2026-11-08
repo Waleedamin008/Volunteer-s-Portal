@@ -11,12 +11,10 @@ import {
   LogIn,
   AlertCircle,
   Shield,
-  Briefcase,
-  Sparkles,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, switchUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -35,12 +33,12 @@ export const LoginPage: React.FC = () => {
 
     const user = StorageService.getUserByEmail(email.trim());
     if (!user) {
-      setError('Invalid email address. Please check your credentials or select a demo account.');
+      setError('Account with this email does not exist.');
       setIsSubmitting(false);
       return;
     }
 
-    const success = login(email.trim());
+    const success = login(email.trim(), password);
     if (success) {
       if (user.role === 'admin') {
         navigate('/admin/dashboard');
@@ -48,30 +46,14 @@ export const LoginPage: React.FC = () => {
         navigate('/leader/dashboard');
       }
     } else {
-      setError('Authentication failed.');
+      setError('Invalid password. Please check your credentials.');
     }
     setIsSubmitting(false);
   };
 
-  const handleQuickLogin = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('demo-password');
-    const user = StorageService.getUserByEmail(demoEmail);
-    if (user) {
-      login(demoEmail);
-      if (user.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/leader/dashboard');
-      }
-    }
-  };
-
-  const allDemoUsers = StorageService.getUsers();
-
   return (
     <div className="min-h-screen bg-brand-navy flex flex-col justify-center items-center py-12 px-4 sm:px-6 relative overflow-hidden">
-      {/* Background Islamic Geometric Watermark pattern */}
+      {/* Background Watermark */}
       <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center">
         <Logo size="xl" variant="emblem" className="w-[800px] h-[800px]" />
       </div>
@@ -151,56 +133,23 @@ export const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white bg-brand-navy hover:bg-brand-darkNavy transition-all shadow-md flex items-center justify-center gap-2"
+              className="w-full mt-2 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white bg-brand-navy hover:bg-brand-darkNavy transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <LogIn className="w-4 h-4 text-brand-gold" />
-              <span>Sign In to Dashboard</span>
+              <span>{isSubmitting ? 'Signing in...' : 'Sign In to Dashboard'}</span>
             </button>
           </form>
 
-          {/* Quick Demo Switcher Section */}
-          <div className="mt-6 pt-5 border-t border-gray-100">
-            <div className="flex items-center gap-1.5 mb-2.5 text-brand-navy font-bold text-xs">
-              <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
-              <span>One-Click Demo Accounts:</span>
+          {/* Restricted Access Guidance */}
+          <div className="mt-5 pt-4 border-t border-gray-100 text-center space-y-1">
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-navy">
+              <Shield className="w-3.5 h-3.5 text-brand-gold" />
+              <span>Restricted Access Portal</span>
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              {allDemoUsers.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => handleQuickLogin(u.email)}
-                  className="w-full text-left p-2.5 rounded-xl border border-gray-200 hover:border-brand-gold/60 hover:bg-brand-warmIvory/20 transition-all flex items-center justify-between text-xs"
-                >
-                  <div>
-                    <span className="font-semibold text-brand-navy block">
-                      {u.full_name}
-                    </span>
-                    <span className="text-[10px] text-brand-mutedGray">{u.email}</span>
-                  </div>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                      u.role === 'admin'
-                        ? 'bg-brand-navy text-brand-gold'
-                        : 'bg-blue-100 text-blue-800'
-                    }`}
-                  >
-                    {u.role === 'admin' ? 'Admin' : 'Leader'}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <p className="text-[11px] text-brand-mutedGray leading-relaxed">
+              This login page is restricted to authorized MAQAM-E-JOUD Foundation administrators and designated team leaders. All access is logged.
+            </p>
           </div>
-        </div>
-
-        {/* Public Join Link Shortcut */}
-        <div className="text-center">
-          <Link
-            to="/join/donation-team"
-            className="text-xs text-brand-lightGold hover:text-white transition-colors underline underline-offset-4"
-          >
-            Looking for public volunteer recruitment forms? Click here &rarr;
-          </Link>
         </div>
       </div>
 

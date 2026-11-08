@@ -208,3 +208,4 @@ export const STATUS_META: Record<
     desc: 'Pending applicant response or future campaign allocation',
   },
 };
+

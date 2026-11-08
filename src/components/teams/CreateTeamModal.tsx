@@ -190,3 +190,4 @@ export const CreateTeamModal: React.FC<CreateTeamModalProps> = ({
     </div>
   );
 };
+

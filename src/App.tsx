@@ -6,6 +6,7 @@ import { AppLayout } from './components/layout/AppLayout';
 // Public Pages
 import { LoginPage } from './pages/public/LoginPage';
 import { PublicJoinPage } from './pages/public/PublicJoinPage';
+import { PublicLandingPage } from './pages/public/PublicLandingPage';
 
 // Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -74,12 +75,12 @@ export const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
+          <Route path="/" element={<PublicLandingPage />} />
           <Route path="/join/:slug" element={<PublicJoinPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/portal" element={<LoginPage />} />
+          <Route path="/admin/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<LoginPage />} />
-
-          {/* Root Redirect */}
-          <Route path="/" element={<RootRedirector />} />
 
           {/* Admin Protected Routes */}
           <Route
@@ -125,3 +126,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

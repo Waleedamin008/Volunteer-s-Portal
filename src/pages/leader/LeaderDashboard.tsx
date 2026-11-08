@@ -116,50 +116,50 @@ export const LeaderDashboard: React.FC = () => {
       </div>
 
       {/* Team KPI Counters */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-brand-mutedGray mb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-2xs">
+          <div className="flex items-center justify-between text-brand-mutedGray mb-1.5 sm:mb-2">
             <span className="text-xs font-semibold">Total Applicants</span>
             <Users className="w-4 h-4 text-brand-navy" />
           </div>
-          <p className="text-2xl font-bold text-brand-navy">{teamStats.total}</p>
-          <span className="text-[11px] text-brand-mutedGray">For this team</span>
+          <p className="text-xl sm:text-2xl font-bold text-brand-navy">{teamStats.total}</p>
+          <span className="text-[10px] sm:text-[11px] text-brand-mutedGray">For this team</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-brand-mutedGray mb-2">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-2xs">
+          <div className="flex items-center justify-between text-brand-mutedGray mb-1.5 sm:mb-2">
             <span className="text-xs font-semibold">New Submissions</span>
             <Clock className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-bold text-blue-700">{teamStats.new}</p>
-          <span className="text-[11px] text-blue-700 font-medium">Ready for review</span>
+          <p className="text-xl sm:text-2xl font-bold text-blue-700">{teamStats.new}</p>
+          <span className="text-[10px] sm:text-[11px] text-blue-700 font-medium">Ready for review</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-brand-mutedGray mb-2">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-2xs">
+          <div className="flex items-center justify-between text-brand-mutedGray mb-1.5 sm:mb-2">
             <span className="text-xs font-semibold">Under Review</span>
             <TrendingUp className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-2xl font-bold text-amber-600">{teamStats.under_review}</p>
-          <span className="text-[11px] text-amber-700 font-medium">Evaluation pending</span>
+          <p className="text-xl sm:text-2xl font-bold text-amber-600">{teamStats.under_review}</p>
+          <span className="text-[10px] sm:text-[11px] text-amber-700 font-medium">Evaluation pending</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-brand-mutedGray mb-2">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-2xs">
+          <div className="flex items-center justify-between text-brand-mutedGray mb-1.5 sm:mb-2">
             <span className="text-xs font-semibold">Contacted</span>
             <TrendingUp className="w-4 h-4 text-purple-600" />
           </div>
-          <p className="text-2xl font-bold text-purple-700">{teamStats.contacted}</p>
-          <span className="text-[11px] text-purple-700 font-medium">Calls / WhatsApp sent</span>
+          <p className="text-xl sm:text-2xl font-bold text-purple-700">{teamStats.contacted}</p>
+          <span className="text-[10px] sm:text-[11px] text-purple-700 font-medium">Calls / WhatsApp sent</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-2xs">
-          <div className="flex items-center justify-between text-brand-mutedGray mb-2">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200 shadow-2xs col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-brand-mutedGray mb-1.5 sm:mb-2">
             <span className="text-xs font-semibold">Approved</span>
             <CheckCircle className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-bold text-emerald-600">{teamStats.approved}</p>
-          <span className="text-[11px] text-emerald-700 font-medium">Active volunteers</span>
+          <p className="text-xl sm:text-2xl font-bold text-emerald-600">{teamStats.approved}</p>
+          <span className="text-[10px] sm:text-[11px] text-emerald-700 font-medium">Active volunteers</span>
         </div>
       </div>
 
@@ -192,3 +192,4 @@ export const LeaderDashboard: React.FC = () => {
     </div>
   );
 };
+

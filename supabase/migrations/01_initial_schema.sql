@@ -214,3 +214,4 @@ CREATE POLICY "Leaders access team notes" ON public.application_notes
         WHERE a.id = application_notes.application_id AND tm.user_id = auth.uid()
       )
     );
+

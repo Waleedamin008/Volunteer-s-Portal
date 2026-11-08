@@ -172,10 +172,10 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 bg-white rounded-t-xl px-4">
+      <div className="flex border-b border-gray-200 bg-white rounded-t-xl px-2 sm:px-4 overflow-x-auto no-scrollbar whitespace-nowrap">
         <button
           onClick={() => setActiveTab('fields')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
+          className={`py-3.5 px-3 sm:px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
             activeTab === 'fields'
               ? 'border-brand-navy text-brand-navy'
               : 'border-transparent text-brand-mutedGray hover:text-brand-navy'
@@ -185,7 +185,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
         </button>
         <button
           onClick={() => setActiveTab('settings')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
+          className={`py-3.5 px-3 sm:px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
             activeTab === 'settings'
               ? 'border-brand-navy text-brand-navy'
               : 'border-transparent text-brand-mutedGray hover:text-brand-navy'
@@ -196,7 +196,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
         </button>
         <button
           onClick={() => setActiveTab('preview')}
-          className={`py-3.5 px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 ${
+          className={`py-3.5 px-3 sm:px-4 text-xs font-bold border-b-2 transition-colors flex items-center gap-2 shrink-0 ${
             activeTab === 'preview'
               ? 'border-brand-navy text-brand-navy'
               : 'border-transparent text-brand-mutedGray hover:text-brand-navy'
@@ -210,7 +210,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
       {/* Tab 1: Field Editor */}
       {activeTab === 'fields' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <p className="text-xs text-brand-mutedGray">
               Customize the volunteer application questions. Reorder using arrow buttons, edit properties, or add new dynamic fields.
             </p>
@@ -219,7 +219,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
                 setEditingField(null);
                 setIsFieldModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-gold text-brand-navy text-xs font-semibold rounded-lg hover:bg-brand-lightGold transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-gold text-brand-navy text-xs font-bold rounded-lg hover:bg-brand-lightGold transition-colors shadow-2xs self-start sm:self-auto shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Field</span>
@@ -230,14 +230,14 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
             {config.fields.map((field, idx) => (
               <div
                 key={field.id}
-                className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs hover:border-brand-gold/50 transition-all flex items-center justify-between gap-3"
+                className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs hover:border-brand-gold/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-6 h-6 rounded-full bg-brand-warmIvory/60 text-brand-navy font-bold text-xs flex items-center justify-center shrink-0">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <span className="w-6 h-6 rounded-full bg-brand-warmIvory/60 text-brand-navy font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                     {idx + 1}
                   </span>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                       <span className="font-semibold text-xs sm:text-sm text-brand-navy">
                         {field.label}
                       </span>
@@ -259,11 +259,11 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 self-end sm:self-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 w-full sm:w-auto justify-end">
                   <button
                     onClick={() => handleFieldMove(idx, 'up')}
                     disabled={idx === 0}
-                    className="p-1.5 text-gray-400 hover:text-brand-navy disabled:opacity-20"
+                    className="p-1.5 text-gray-400 hover:text-brand-navy disabled:opacity-20 rounded hover:bg-gray-50"
                     title="Move Up"
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
@@ -271,14 +271,14 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
                   <button
                     onClick={() => handleFieldMove(idx, 'down')}
                     disabled={idx === config.fields.length - 1}
-                    className="p-1.5 text-gray-400 hover:text-brand-navy disabled:opacity-20"
+                    className="p-1.5 text-gray-400 hover:text-brand-navy disabled:opacity-20 rounded hover:bg-gray-50"
                     title="Move Down"
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleDuplicateField(field)}
-                    className="p-1.5 text-gray-400 hover:text-brand-navy"
+                    className="p-1.5 text-gray-400 hover:text-brand-navy rounded hover:bg-gray-50"
                     title="Duplicate Field"
                   >
                     <Copy className="w-3.5 h-3.5" />
@@ -288,14 +288,14 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
                       setEditingField(field);
                       setIsFieldModalOpen(true);
                     }}
-                    className="p-1.5 text-gray-400 hover:text-blue-600"
+                    className="p-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50"
                     title="Edit Field Properties"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleRemoveField(field.id)}
-                    className="p-1.5 text-gray-400 hover:text-rose-600"
+                    className="p-1.5 text-gray-400 hover:text-rose-600 rounded hover:bg-rose-50"
                     title="Remove Field"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -468,3 +468,4 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
     </div>
   );
 };
+

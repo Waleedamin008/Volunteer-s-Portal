@@ -304,3 +304,4 @@ export const AdminTeamDetailPage: React.FC = () => {
     </div>
   );
 };
+

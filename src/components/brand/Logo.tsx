@@ -14,7 +14,7 @@ export const Logo: React.FC<LogoProps> = ({
   className = '',
 }) => {
   const sizeMap = {
-    sm: { img: 'w-7 h-7', text: 'text-sm', subtext: 'text-[9px]' },
+    sm: { img: 'w-8 h-8', text: 'text-sm', subtext: 'text-[9px]' },
     md: { img: 'w-10 h-10', text: 'text-base', subtext: 'text-[10px]' },
     lg: { img: 'w-16 h-16', text: 'text-xl', subtext: 'text-xs' },
     xl: { img: 'w-24 h-24', text: 'text-2xl', subtext: 'text-sm' },
@@ -22,14 +22,24 @@ export const Logo: React.FC<LogoProps> = ({
 
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-white' : 'text-brand-navy';
-  const subtextColor = isDark ? 'text-brand-gold' : 'text-brand-gold';
+  const subtextColor = 'text-brand-gold';
+
+  const logoSrc = "/Logo Maqam-e-JOUD.jpeg";
+
+  const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.currentTarget;
+    if (target.src.includes('.jpeg')) {
+      target.src = '/logo.png';
+    }
+  };
 
   if (variant === 'emblem') {
     return (
       <img
-        src="/logo.svg"
+        src={logoSrc}
+        onError={handleImgError}
         alt="MAQAM-E-JOUD Foundation Emblem"
-        className={`${sizeMap[size].img} object-contain transition-transform hover:scale-105 ${className}`}
+        className={`${sizeMap[size].img} object-contain rounded-full shadow-sm transition-transform hover:scale-105 ${className}`}
       />
     );
   }
@@ -38,11 +48,12 @@ export const Logo: React.FC<LogoProps> = ({
     return (
       <div className={`flex flex-col items-center text-center ${className}`}>
         <img
-          src="/logo.svg"
+          src={logoSrc}
+          onError={handleImgError}
           alt="MAQAM-E-JOUD Foundation Emblem"
-          className={`${sizeMap[size].img} mb-3 shadow-md rounded-full`}
+          className={`${sizeMap[size].img} mb-3 shadow-md rounded-full object-contain`}
         />
-        <span className={`font-urdu text-lg leading-tight text-brand-gold`}>
+        <span className="font-urdu text-lg leading-tight text-brand-gold font-bold">
           مقامِ جود فاؤنڈیشن
         </span>
         <span className={`font-bold tracking-widest ${sizeMap[size].text} ${textColor} mt-1`}>
@@ -59,9 +70,10 @@ export const Logo: React.FC<LogoProps> = ({
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       <img
-        src="/logo.svg"
+        src={logoSrc}
+        onError={handleImgError}
         alt="MAQAM-E-JOUD Foundation Emblem"
-        className={`${sizeMap[size].img} object-contain shrink-0 rounded-full shadow-sm`}
+        className={`${sizeMap[size].img} object-contain shrink-0 rounded-full shadow-sm border border-brand-gold/30`}
       />
       <div className="flex flex-col">
         <div className="flex items-center gap-2">

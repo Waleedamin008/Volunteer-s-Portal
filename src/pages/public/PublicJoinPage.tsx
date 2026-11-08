@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { StorageService } from '../../lib/storage';
 import { DynamicFormRenderer } from '../../components/forms/DynamicFormRenderer';
 import { Logo } from '../../components/brand/Logo';
@@ -40,14 +40,9 @@ export const PublicJoinPage: React.FC = () => {
           <p className="text-xs text-brand-mutedGray mt-2">
             The link you followed for team slug <code>"{slug}"</code> does not exist or has been removed.
           </p>
-          <div className="mt-6">
-            <Link
-              to="/login"
-              className="text-xs font-semibold text-brand-navy hover:underline"
-            >
-              Foundation Portal Login &rarr;
-            </Link>
-          </div>
+          <p className="text-xs text-brand-mutedGray mt-4">
+            Please verify the joining link provided by your team leader or contact MAQAM-E-JOUD Foundation.
+          </p>
         </div>
       </div>
     );
@@ -179,22 +174,16 @@ export const PublicJoinPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="pt-4 flex items-center justify-center">
                 <button
                   onClick={() => {
                     setSubmittedRef(null);
                     setSubmittedName('');
                   }}
-                  className="px-5 py-2.5 rounded-xl border border-gray-300 text-brand-navy hover:bg-gray-50 text-xs font-semibold transition-colors"
+                  className="px-6 py-2.5 rounded-xl border border-gray-300 text-brand-navy hover:bg-gray-50 text-xs font-semibold transition-colors"
                 >
                   Submit Another Response
                 </button>
-                <Link
-                  to="/login"
-                  className="px-5 py-2.5 rounded-xl bg-brand-navy hover:bg-brand-darkNavy text-white text-xs font-semibold shadow-sm transition-colors"
-                >
-                  Return to Portal Home
-                </Link>
               </div>
             </div>
           ) : (
@@ -230,3 +219,4 @@ export const PublicJoinPage: React.FC = () => {
     </div>
   );
 };
+

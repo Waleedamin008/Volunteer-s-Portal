@@ -153,7 +153,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   placeholder={field.placeholder || 'Enter text...'}
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
                 />
               )}
 
@@ -163,7 +163,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   placeholder={field.placeholder || 'Enter your response...'}
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
                 />
               )}
 
@@ -173,7 +173,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   placeholder={field.placeholder || 'name@example.com'}
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
                 />
               )}
 
@@ -183,7 +183,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   placeholder={field.placeholder || '+92 300 1234567'}
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
                 />
               )}
 
@@ -193,7 +193,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   placeholder={field.placeholder || '0'}
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
                 />
               )}
 
@@ -202,7 +202,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                   type="date"
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-gray-50/50 focus:bg-white"
                 />
               )}
 
@@ -210,7 +210,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
                 <select
                   value={val || ''}
                   onChange={(e) => handleInputChange(field.id, e.target.value)}
-                  className="w-full text-xs sm:text-sm p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-white font-medium text-brand-navy"
+                  className="w-full text-base sm:text-sm p-3 sm:p-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-brand-gold/60 focus:outline-none bg-white font-medium text-brand-navy"
                 >
                   <option value="">-- Please Select an Option --</option>
                   {field.options?.map((opt, i) => (
@@ -337,3 +337,4 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     </form>
   );
 };
+

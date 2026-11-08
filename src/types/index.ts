@@ -155,3 +155,4 @@ export interface ActivityLog {
   metadata?: Record<string, any>;
   created_at: string;
 }
+

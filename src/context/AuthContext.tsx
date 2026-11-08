@@ -7,9 +7,8 @@ interface AuthContextType {
   assignedTeams: Team[];
   activeTeam: Team | null;
   setActiveTeam: (team: Team | null) => void;
-  login: (email: string) => boolean;
+  login: (email: string, password?: string) => boolean;
   logout: () => void;
-  switchUser: (userId: string) => void;
   refreshUserData: () => void;
   isLoading: boolean;
 }
@@ -23,7 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUserData = (currentUserId?: string) => {
-    const savedUserId = currentUserId || localStorage.getItem('mj_current_user_id');
+    const savedUserId = currentUserId || localStorage.getItem('mj_current_user_prod_v2');
     const allUsers = StorageService.getUsers();
 
     if (savedUserId) {
@@ -38,14 +37,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Default to admin on first load for easy demonstration
-    const defaultAdmin = allUsers.find((u) => u.role === 'admin') || allUsers[0];
-    if (defaultAdmin) {
-      setUser(defaultAdmin);
-      localStorage.setItem('mj_current_user_id', defaultAdmin.id);
-      const teams = StorageService.getUserTeams(defaultAdmin.id);
+    // Default to admin session if no active session yet
+    const adminUser = allUsers.find((u) => u.role === 'admin') || allUsers[0];
+    if (adminUser) {
+      setUser(adminUser);
+      localStorage.setItem('mj_current_user_prod_v2', adminUser.id);
+      const teams = StorageService.getUserTeams(adminUser.id);
       setAssignedTeams(teams);
       setActiveTeam(teams.length > 0 ? teams[0] : null);
+    } else {
+      setUser(null);
     }
     setIsLoading(false);
   };
@@ -54,12 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadUserData();
   }, []);
 
-  const login = (email: string): boolean => {
+  const login = (email: string, password = ''): boolean => {
     const found = StorageService.getUserByEmail(email);
     if (!found) return false;
 
+    if (password && !StorageService.verifyPassword(email, password)) {
+      return false;
+    }
+
     setUser(found);
-    localStorage.setItem('mj_current_user_id', found.id);
+    localStorage.setItem('mj_current_user_prod_v2', found.id);
     const teams = StorageService.getUserTeams(found.id);
     setAssignedTeams(teams);
     setActiveTeam(teams.length > 0 ? teams[0] : null);
@@ -70,16 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setAssignedTeams([]);
     setActiveTeam(null);
-    localStorage.removeItem('mj_current_user_id');
-  };
-
-  const switchUser = (userId: string) => {
-    loadUserData(userId);
+    localStorage.removeItem('mj_current_user_prod_v2');
   };
 
   const refreshUserData = () => {
     if (user) {
       loadUserData(user.id);
+    } else {
+      loadUserData();
     }
   };
 
@@ -92,7 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveTeam,
         login,
         logout,
-        switchUser,
         refreshUserData,
         isLoading,
       }}

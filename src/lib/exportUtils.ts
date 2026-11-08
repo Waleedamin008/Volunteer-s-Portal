@@ -84,3 +84,4 @@ export const exportApplicationsToCSV = (
   link.click();
   document.body.removeChild(link);
 };
+

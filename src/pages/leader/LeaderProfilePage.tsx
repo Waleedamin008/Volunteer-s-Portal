@@ -144,3 +144,4 @@ export const LeaderProfilePage: React.FC = () => {
     </div>
   );
 };
+

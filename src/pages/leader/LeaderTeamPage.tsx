@@ -115,3 +115,4 @@ export const LeaderTeamPage: React.FC = () => {
     </div>
   );
 };
+

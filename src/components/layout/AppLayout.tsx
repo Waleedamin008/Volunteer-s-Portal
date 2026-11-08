@@ -7,7 +7,7 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-brand-ivoryBg flex">
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation (drawer on mobile, fixed column on desktop) */}
       <Sidebar
         isOpen={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
@@ -15,7 +15,7 @@ export const AppLayout: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
-        <main className="flex-1 p-4 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-8 max-w-7xl w-full mx-auto">
           <Outlet context={{ openMobileMenu: () => setMobileMenuOpen(true) }} />
         </main>
       </div>
