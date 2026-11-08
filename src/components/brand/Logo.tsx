@@ -80,9 +80,7 @@ export const Logo: React.FC<LogoProps> = ({
           <span className={`font-bold tracking-wider leading-none ${sizeMap[size].text} ${textColor}`}>
             MAQAM-E-JOUD
           </span>
-          <span className="font-urdu text-xs text-brand-gold leading-none pb-0.5">
-            مقامِ جود
-          </span>
+
         </div>
         <span className={`font-semibold tracking-[0.22em] ${sizeMap[size].subtext} ${subtextColor} mt-0.5`}>
           FOUNDATION

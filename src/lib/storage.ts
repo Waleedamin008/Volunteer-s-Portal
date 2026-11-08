@@ -269,7 +269,9 @@ export const StorageService = {
   },
 
   getTeamBySlug(slug: string): Team | undefined {
-    return this.getTeams().find((t) => t.slug.toLowerCase() === slug.toLowerCase());
+    if (!slug) return undefined;
+    const normalized = slug.toLowerCase().trim();
+    return this.getTeams().find((t) => t.slug.toLowerCase() === normalized);
   },
 
   createTeam(data: { name: string; description: string; slug: string; leader_id?: string }): Team {
@@ -347,6 +349,33 @@ export const StorageService = {
     if (!team) return undefined;
     const nextStatus = team.status === 'active' ? 'inactive' : 'active';
     return this.updateTeam(id, { status: nextStatus });
+  },
+
+  deleteTeam(id: string): { success: boolean; error?: string } {
+    const teams = this.getTeams();
+    const team = teams.find((t) => t.id === id);
+    if (!team) return { success: false, error: 'Team not found.' };
+
+    setStored(
+      STORAGE_KEYS.TEAMS,
+      teams.filter((t) => t.id !== id)
+    );
+    const memberships = this.getMemberships().filter((m) => m.team_id !== id);
+    setStored(STORAGE_KEYS.MEMBERSHIPS, memberships);
+
+    const formConfigs = this.getFormConfigs().filter((f) => f.team_id !== id);
+    setStored(STORAGE_KEYS.FORM_CONFIGS, formConfigs);
+
+    this.logActivity({
+      team_id: id,
+      team_name: team.name,
+      user_name: 'Admin',
+      action: `Deleted recruitment team: ${team.name}`,
+      entity_type: 'team',
+      entity_id: id,
+    });
+
+    return { success: true };
   },
 
   // Team Memberships

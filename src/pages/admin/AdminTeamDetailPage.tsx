@@ -13,16 +13,19 @@ import {
   FileText,
   Clock,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { StorageService } from '../../lib/storage';
 import { ApplicationTable } from '../../components/applications/ApplicationTable';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { exportApplicationsToExcel } from '../../lib/exportUtils';
+import { useConfirm } from '../../context/ConfirmationContext';
 
 export const AdminTeamDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const [copied, setCopied] = useState(false);
   const [isEditingLeader, setIsEditingLeader] = useState(false);
   const [selectedLeaderId, setSelectedLeaderId] = useState('');
@@ -58,15 +61,36 @@ export const AdminTeamDetailPage: React.FC = () => {
     setIsEditingLeader(false);
   };
 
-  const handleToggleStatus = () => {
+  const handleToggleStatus = async () => {
     const next = team.status === 'active' ? 'deactivate' : 'activate';
-    if (
-      window.confirm(
-        `Are you sure you want to ${next} this team? Inactive teams reject new applications.`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: `${next === 'deactivate' ? 'Deactivate' : 'Activate'} Team`,
+      message: `Are you sure you want to ${next} this team?\n\n${
+        next === 'deactivate'
+          ? 'Inactive teams will reject new public volunteer applications through their recruitment link.'
+          : 'Active teams will be open to accept public volunteer applications.'
+      }`,
+      confirmText: next === 'deactivate' ? 'Deactivate Team' : 'Activate Team',
+      variant: next === 'deactivate' ? 'warning' : 'info',
+    });
+
+    if (confirmed) {
       StorageService.toggleTeamStatus(team.id);
       window.location.reload();
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Recruitment Team',
+      message: `Are you sure you want to permanently delete "${team.name}" and its associated configuration?\n\nThis action cannot be undone.`,
+      confirmText: 'Delete Team',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
+      StorageService.deleteTeam(team.id);
+      navigate('/admin/teams');
     }
   };
 
@@ -112,9 +136,17 @@ export const AdminTeamDetailPage: React.FC = () => {
               </span>
               <button
                 onClick={handleToggleStatus}
-                className="text-xs text-gray-400 hover:text-rose-600 underline"
+                className="text-xs text-gray-400 hover:text-navy underline cursor-pointer"
               >
                 {team.status === 'active' ? 'Deactivate' : 'Activate'}
+              </button>
+              <button
+                onClick={handleDeleteTeam}
+                className="text-xs text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-1 cursor-pointer"
+                title="Delete this team"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Delete</span>
               </button>
             </div>
             <p className="text-xs text-brand-mutedGray mt-1 max-w-2xl leading-relaxed">

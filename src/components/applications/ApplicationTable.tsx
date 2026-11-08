@@ -14,6 +14,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../../context/ConfirmationContext';
 import { Application, ApplicationStatus, Team } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { ApplicationDetailModal } from './ApplicationDetailModal';
@@ -46,19 +47,21 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   const pageSize = 10;
 
   const { user } = useAuth();
+  const { confirm, showAlert } = useConfirm();
   const isAdmin = user?.role === 'admin';
 
-  const handleDeleteApplication = (app: Application, e?: React.MouseEvent) => {
+  const handleDeleteApplication = async (app: Application, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!isAdmin) return;
 
-    if (
-      !window.confirm(
-        `Are you sure you want to permanently delete the application for "${app.full_name}" (${app.reference_number})?\n\nThis will remove the applicant's profile, answers, notes, and status history. This action cannot be undone.`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Volunteer Application',
+      message: `Are you sure you want to permanently delete the application for "${app.full_name}" (${app.reference_number})?\n\nThis will remove the applicant's profile, form answers, evaluation notes, and status history. This action cannot be undone.`,
+      confirmText: 'Delete Application',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     const res = StorageService.deleteApplication(
       app.id,
@@ -70,7 +73,11 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
       }
       if (onRefresh) onRefresh();
     } else {
-      alert('Failed to delete application.');
+      await showAlert({
+        title: 'Delete Failed',
+        message: 'Could not delete application. Please try again.',
+        variant: 'danger',
+      });
     }
   };
 

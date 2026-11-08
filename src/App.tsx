@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ConfirmationProvider } from './context/ConfirmationContext';
 import { AppLayout } from './components/layout/AppLayout';
 
 // Public Pages
@@ -71,7 +72,8 @@ const RootRedirector: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <ConfirmationProvider>
+        <BrowserRouter>
         <Routes>
           {/* Root Redirect to Login or Dashboard */}
           <Route path="/" element={<RootRedirector />} />
@@ -120,7 +122,8 @@ export const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-    </AuthProvider>
+    </ConfirmationProvider>
+  </AuthProvider>
   );
 };
 

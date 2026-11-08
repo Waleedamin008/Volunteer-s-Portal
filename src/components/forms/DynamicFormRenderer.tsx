@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FormField, FormConfig } from '../../types';
 import { Upload, Check, AlertCircle, Send } from 'lucide-react';
 import { Logo } from '../brand/Logo';
+import { useConfirm } from '../../context/ConfirmationContext';
 
 interface DynamicFormRendererProps {
   formConfig: FormConfig;
@@ -18,6 +19,7 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
   onSubmit,
   isSubmitting = false,
 }) => {
+  const { showAlert } = useConfirm();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [uploadFileNames, setUploadFileNames] = useState<Record<string, string>>({});
@@ -79,10 +81,14 @@ export const DynamicFormRenderer: React.FC<DynamicFormRendererProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPreview) {
-      alert('This is a live preview simulation. All validations passed!');
+      await showAlert({
+        title: 'Preview Simulation Passed',
+        message: 'This is a live preview simulation. All validation checks passed successfully!',
+        variant: 'success',
+      });
       return;
     }
     if (validate() && onSubmit) {

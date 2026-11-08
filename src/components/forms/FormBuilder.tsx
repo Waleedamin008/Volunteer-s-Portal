@@ -20,6 +20,7 @@ import { FormConfig, FormField } from '../../types';
 import { StorageService } from '../../lib/storage';
 import { FieldEditorModal } from './FieldEditorModal';
 import { DynamicFormRenderer } from './DynamicFormRenderer';
+import { useConfirm } from '../../context/ConfirmationContext';
 
 interface FormBuilderProps {
   teamId: string;
@@ -27,6 +28,7 @@ interface FormBuilderProps {
 }
 
 export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => {
+  const { confirm } = useConfirm();
   const team = StorageService.getTeamById(teamId);
   const initialConfig =
     StorageService.getFormConfigByTeamId(teamId) ||
@@ -83,8 +85,16 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
     StorageService.saveFormConfig({ ...config, fields: updatedFields });
   };
 
-  const handleRemoveField = (fieldId: string) => {
-    if (window.confirm('Remove this field from the form template? (Past submissions will retain this answer)')) {
+  const handleRemoveField = async (fieldId: string) => {
+    const field = config.fields.find((f) => f.id === fieldId);
+    const confirmed = await confirm({
+      title: 'Remove Form Field',
+      message: `Are you sure you want to remove the field "${field?.label || 'this field'}" from the form template?\n\nExisting applications will safely retain past answers submitted for this question.`,
+      confirmText: 'Remove Field',
+      variant: 'danger',
+    });
+
+    if (confirmed) {
       const updatedFields = config.fields.filter((f) => f.id !== fieldId);
       setConfig({ ...config, fields: updatedFields });
       StorageService.saveFormConfig({ ...config, fields: updatedFields });
@@ -113,12 +123,16 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({ teamId, onSaved }) => 
     if (onSaved) onSaved();
   };
 
-  const handlePublishNewVersion = () => {
-    if (
-      window.confirm(
-        `Publishing this will make Version ${(config.published_version || 0) + 1} live for public applicants. All historical applications will preserve their original form version. Continue?`
-      )
-    ) {
+  const handlePublishNewVersion = async () => {
+    const nextVer = (config.published_version || 0) + 1;
+    const confirmed = await confirm({
+      title: `Publish Form Version ${nextVer}`,
+      message: `Publishing this will make Version ${nextVer} immediately active for prospective volunteers applying online.\n\nAll historical applications will permanently preserve their original form version. Continue?`,
+      confirmText: `Publish Version ${nextVer}`,
+      variant: 'info',
+    });
+
+    if (confirmed) {
       const res = StorageService.publishFormConfig(config.id);
       setConfig(res.config);
       setSaveSuccessMsg(`Published Version ${res.config.published_version} is now active!`);

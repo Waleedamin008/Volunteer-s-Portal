@@ -22,6 +22,7 @@ import { StatusBadge } from '../common/StatusBadge';
 import { StorageService } from '../../lib/storage';
 import { generateApplicantPDF } from '../../lib/pdfGenerator';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../../context/ConfirmationContext';
 
 interface ApplicationDetailModalProps {
   applicationId: string;
@@ -35,6 +36,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   onStatusUpdated,
 }) => {
   const { user } = useAuth();
+  const { confirm, showAlert } = useConfirm();
   const [activeTab, setActiveTab] = useState<'profile' | 'notes' | 'history'>('profile');
   const [newNote, setNewNote] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
@@ -56,16 +58,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
     if (onStatusUpdated) onStatusUpdated();
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (user?.role !== 'admin') return;
 
-    if (
-      !window.confirm(
-        `Are you sure you want to permanently delete the application for "${app.full_name}" (${app.reference_number})?\n\nThis will remove the applicant's profile, answers, notes, and status history. This action cannot be undone.`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Volunteer Application',
+      message: `Are you sure you want to permanently delete the application for "${app.full_name}" (${app.reference_number})?\n\nThis will remove the applicant's profile, form answers, evaluation notes, and status history. This action cannot be undone.`,
+      confirmText: 'Delete Application',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     const res = StorageService.deleteApplication(
       app.id,
@@ -75,7 +78,11 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
       onClose();
       if (onStatusUpdated) onStatusUpdated();
     } else {
-      alert('Failed to delete application.');
+      await showAlert({
+        title: 'Delete Failed',
+        message: 'Could not delete application. Please try again.',
+        variant: 'danger',
+      });
     }
   };
 

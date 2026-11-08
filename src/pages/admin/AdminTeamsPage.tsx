@@ -11,15 +11,19 @@ import {
   Users,
   Settings,
   Shield,
+  Sparkles,
+  Eye,
 } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { StorageService } from '../../lib/storage';
 import { CreateTeamModal } from '../../components/teams/CreateTeamModal';
 import { EmptyState } from '../../components/common/EmptyState';
+import { useConfirm } from '../../context/ConfirmationContext';
 import { Team } from '../../types';
 
 export const AdminTeamsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { confirm } = useConfirm();
   const [teams, setTeams] = useState<Team[]>(StorageService.getTeams());
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -36,13 +40,20 @@ export const AdminTeamsPage: React.FC = () => {
     setTimeout(() => setCopiedSlug(null), 2000);
   };
 
-  const handleToggleStatus = (teamId: string, currentStatus: string) => {
+  const handleToggleStatus = async (teamId: string, currentStatus: string) => {
     const next = currentStatus === 'active' ? 'deactivate' : 'activate';
-    if (
-      window.confirm(
-        `Are you sure you want to ${next} this team? Inactive teams will not accept public volunteer submissions.`
-      )
-    ) {
+    const confirmed = await confirm({
+      title: `${next === 'deactivate' ? 'Deactivate' : 'Activate'} Recruitment Team`,
+      message: `Are you sure you want to ${next} this team?\n\n${
+        next === 'deactivate'
+          ? 'Inactive teams will reject new public volunteer applications through their recruitment link.'
+          : 'Active teams will be open to accept public volunteer applications.'
+      }`,
+      confirmText: next === 'deactivate' ? 'Deactivate Team' : 'Activate Team',
+      variant: next === 'deactivate' ? 'warning' : 'info',
+    });
+
+    if (confirmed) {
       StorageService.toggleTeamStatus(teamId);
       refreshTeams();
     }
@@ -224,15 +235,17 @@ export const AdminTeamsPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Link
                       to={`/admin/teams/${team.id}/form`}
-                      className="px-2.5 py-1 font-semibold text-brand-navy bg-brand-warmIvory/60 hover:bg-brand-warmIvory rounded-lg border border-brand-gold/30 transition-colors"
+                      className="h-8 px-3 inline-flex items-center justify-center gap-1.5 font-semibold text-brand-navy bg-brand-warmIvory/60 hover:bg-brand-warmIvory rounded-lg border border-brand-gold/40 transition-colors whitespace-nowrap text-xs shadow-2xs"
                     >
-                      Form Builder
+                      <Sparkles className="w-3.5 h-3.5 text-brand-gold shrink-0" />
+                      <span>Form Builder</span>
                     </Link>
                     <Link
                       to={`/admin/teams/${team.id}`}
-                      className="px-2.5 py-1 font-semibold text-white bg-brand-navy hover:bg-brand-darkNavy rounded-lg transition-colors"
+                      className="h-8 px-3.5 inline-flex items-center justify-center gap-1.5 font-semibold text-white bg-brand-navy hover:bg-brand-darkNavy rounded-lg transition-colors whitespace-nowrap text-xs shadow-2xs"
                     >
-                      Details
+                      <Eye className="w-3.5 h-3.5 text-brand-gold shrink-0" />
+                      <span>Details</span>
                     </Link>
                   </div>
                 </div>

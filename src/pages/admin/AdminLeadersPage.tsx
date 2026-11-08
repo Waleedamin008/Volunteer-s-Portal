@@ -19,10 +19,12 @@ import {
 import { Header } from '../../components/layout/Header';
 import { StorageService } from '../../lib/storage';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../../context/ConfirmationContext';
 import { UserProfile, Team } from '../../types';
 
 export const AdminLeadersPage: React.FC = () => {
   const { user: currentAdmin } = useAuth();
+  const { confirm, showAlert } = useConfirm();
   const [users, setUsers] = useState<UserProfile[]>(
     StorageService.getUsers().filter((u) => u.role === 'team_leader')
   );
@@ -166,20 +168,21 @@ export const AdminLeadersPage: React.FC = () => {
     setTimeout(() => setCopiedPassword(false), 2500);
   };
 
-  const handleDeleteLeader = (leader: UserProfile) => {
+  const handleDeleteLeader = async (leader: UserProfile) => {
     const assigned = StorageService.getUserTeams(leader.id);
     const teamWarning =
       assigned.length > 0
-        ? `\n\nAssigned to: ${assigned.map((t) => t.name).join(', ')}. These teams will become unassigned.`
-        : '';
+        ? `Assigned to: ${assigned.map((t) => t.name).join(', ')}. These teams will become unassigned.`
+        : 'This leader is not currently assigned to any team.';
 
-    if (
-      !window.confirm(
-        `Are you sure you want to permanently delete team leader "${leader.full_name}" (${leader.email})?${teamWarning}\n\nThis action cannot be undone.`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Team Leader',
+      message: `Are you sure you want to permanently delete team leader "${leader.full_name}" (${leader.email})?\n\n${teamWarning}\n\nThis action cannot be undone.`,
+      confirmText: 'Delete Leader',
+      variant: 'danger',
+    });
+
+    if (!confirmed) return;
 
     const res = StorageService.deleteUser(
       leader.id,
@@ -190,7 +193,11 @@ export const AdminLeadersPage: React.FC = () => {
       setTimeout(() => setNotificationMsg(''), 5000);
       refreshList();
     } else {
-      alert(res.error || 'Failed to delete leader account.');
+      await showAlert({
+        title: 'Action Blocked',
+        message: res.error || 'Failed to delete leader account.',
+        variant: 'danger',
+      });
     }
   };
 
@@ -461,25 +468,47 @@ export const AdminLeadersPage: React.FC = () => {
                   <p className="text-[11px] text-emerald-800 leading-relaxed">
                     You can copy the new credentials below and share them with the team leader:
                   </p>
-                  <div className="p-3 rounded-lg bg-white border border-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="font-mono text-xs text-brand-navy space-y-1">
-                      <p><strong>Portal Link:</strong> <span className="text-brand-navy">{window.location.origin}/login</span></p>
-                      <p><strong>Email:</strong> {passwordModalLeader.email}</p>
-                      <p><strong>Password:</strong> {newPassword}</p>
+                  <div className="rounded-xl bg-white border border-emerald-200 p-3.5 space-y-3 shadow-2xs">
+                    <div className="font-mono text-xs text-brand-navy space-y-2 break-all">
+                      <div>
+                        <span className="text-brand-mutedGray block text-[10px] font-sans uppercase font-bold tracking-wider">
+                          Portal Login Link
+                        </span>
+                        <span className="text-brand-navy font-semibold select-all">
+                          {window.location.origin}/login
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-brand-mutedGray block text-[10px] font-sans uppercase font-bold tracking-wider">
+                          Leader Email
+                        </span>
+                        <span className="text-brand-navy font-semibold select-all">
+                          {passwordModalLeader.email}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-brand-mutedGray block text-[10px] font-sans uppercase font-bold tracking-wider">
+                          New Password
+                        </span>
+                        <span className="text-brand-navy font-bold select-all bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
+                          {newPassword}
+                        </span>
+                      </div>
                     </div>
+
                     <button
                       onClick={handleCopyPassword}
-                      className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 self-end sm:self-auto shadow-2xs"
+                      className="w-full py-2.5 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
                       {copiedPassword ? (
                         <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Copied All</span>
+                          <Check className="w-4 h-4 text-white" />
+                          <span>Copied All to Clipboard!</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>Copy Link & Credentials</span>
+                          <Copy className="w-4 h-4 text-white" />
+                          <span>Copy Link &amp; Credentials</span>
                         </>
                       )}
                     </button>

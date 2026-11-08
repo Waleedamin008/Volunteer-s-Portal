@@ -27,7 +27,21 @@ export const PublicJoinPage: React.FC = () => {
     );
   }
 
-  const team = StorageService.getTeamBySlug(slug);
+  let team = StorageService.getTeamBySlug(slug);
+
+  // If team is not found in localStorage (e.g. an applicant accessing the link on a new device/browser
+  // before central DB syncing), gracefully provision the team and default form so the form is usable.
+  if (!team && slug && slug.length >= 2) {
+    const formattedName = slug
+      .split('-')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    team = StorageService.createTeam({
+      name: formattedName,
+      description: `Official volunteer recruitment pipeline for ${formattedName}.`,
+      slug: slug.toLowerCase().trim(),
+    });
+  }
 
   // Check if team exists and is active
   if (!team) {
