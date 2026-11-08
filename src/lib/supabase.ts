@@ -1,9 +1,13 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+const DEFAULT_SUPABASE_URL = 'https://vofydvvuhbaxddfxxpyx.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvZnlkdnZ1aGJheGRkZnh4cHl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQxMjk2NjYsImV4cCI6MjEwOTcwNTY2Nn0.mBlq4l2mkQaXkvLmcbGmBfHXsUeep0KHU5vmYrfAHa8';
+
 const envUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
 const envKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
-export function getSupabaseCredentials(): { url: string; key: string; source: 'env' | 'local' | 'none' } {
+export function getSupabaseCredentials(): { url: string; key: string; source: 'env' | 'local' | 'default' } {
   if (
     envUrl &&
     envUrl !== 'https://your-project.supabase.co' &&
@@ -22,7 +26,7 @@ export function getSupabaseCredentials(): { url: string; key: string; source: 'e
     }
   }
 
-  return { url: '', key: '', source: 'none' };
+  return { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_ANON_KEY, source: 'default' };
 }
 
 let cachedClient: SupabaseClient | null = null;

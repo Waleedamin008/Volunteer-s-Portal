@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { DEFAULT_FORM_FIELDS } from './constants';
 import { CloudSyncService } from './cloudSync';
+import { generateUUID } from './uuid';
 
 const STORAGE_KEYS = {
   TEAMS: 'mj_teams_prod_v2',
@@ -282,7 +283,7 @@ export const StorageService = {
     const teams = this.getTeams();
     const leader = data.leader_id ? this.getUserById(data.leader_id) : undefined;
     const newTeam: Team = {
-      id: `team_${Date.now()}`,
+      id: generateUUID(),
       name: data.name,
       description: data.description,
       slug: data.slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, '-'),
@@ -431,7 +432,7 @@ export const StorageService = {
   createInitialFormForTeam(team: Team): FormConfig {
     const configs = this.getFormConfigs();
     const newConfig: FormConfig = {
-      id: `form_cfg_${team.id}`,
+      id: generateUUID(),
       team_id: team.id,
       title: `Maqam-e-Joud Foundation | Volunteer & Membership Registration`,
       description: 'Asslamualaikum💙 Thank you for your interest in joining Maqam-e-Joud Welfare. We believe that even small acts of kindness can create a huge impact in society.',
@@ -491,7 +492,7 @@ export const StorageService = {
 
     const versions = this.getFormVersions();
     const newVersion: FormVersion = {
-      id: `ver_${nextVersionNum}_${configs[idx].team_id}_${Date.now()}`,
+      id: generateUUID(),
       form_config_id: configs[idx].id,
       version_number: nextVersionNum,
       schema_json: JSON.parse(JSON.stringify(configs[idx].fields)),
@@ -590,7 +591,7 @@ export const StorageService = {
     const referenceNumber = `MJV-${new Date().getFullYear()}-${randomCode}`;
 
     const newApp: Application = {
-      id: `app_${Date.now()}`,
+      id: generateUUID(),
       reference_number: referenceNumber,
       team_id: team.id,
       team_name: team.name,
@@ -641,7 +642,7 @@ export const StorageService = {
 
     const allHistory = getStored<ApplicationStatusHistory[]>(STORAGE_KEYS.HISTORY, INITIAL_HISTORY);
     allHistory.push({
-      id: `hist_${Date.now()}`,
+      id: generateUUID(),
       application_id: applicationId,
       old_status: oldStatus,
       new_status: newStatus,
@@ -715,7 +716,7 @@ export const StorageService = {
   addApplicationNote(applicationId: string, authorId: string, authorName: string, noteText: string): ApplicationNote {
     const allNotes = getStored<ApplicationNote[]>(STORAGE_KEYS.NOTES, INITIAL_NOTES);
     const newNote: ApplicationNote = {
-      id: `note_${Date.now()}`,
+      id: generateUUID(),
       application_id: applicationId,
       user_id: authorId,
       author_name: authorName,

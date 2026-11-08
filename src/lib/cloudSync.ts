@@ -39,7 +39,7 @@ export const CloudSyncService = {
       if (error) {
         return {
           success: false,
-          message: `Database error: ${error.message}. Please make sure you have executed supabase/schema.sql in your Supabase SQL Editor.`,
+          message: `Database error: ${error.message}.`,
         };
       }
       return { success: true, message: 'Successfully connected to Supabase cloud database!' };
@@ -55,29 +55,28 @@ export const CloudSyncService = {
 
     isSyncing = true;
     try {
-      const [
-        teamsRes,
-        configsRes,
-        appsRes,
-        notesRes,
-        historyRes,
-        usersRes,
-        activityRes,
-      ] = await Promise.allSettled([
+      const [teamsRes, configsRes, appsRes] = await Promise.allSettled([
         client.from('teams').select('*'),
         client.from('form_configs').select('*'),
         client.from('applications').select('*').order('submitted_at', { ascending: false }),
-        client.from('application_notes').select('*'),
-        client.from('application_status_history').select('*'),
-        client.from('users').select('*'),
-        client.from('activity_logs').select('*').order('created_at', { ascending: false }).limit(50),
       ]);
 
       let hasChanges = false;
 
-      // Hydrate Teams
+      // Hydrate Teams (preserving local leader assignment metadata)
       if (teamsRes.status === 'fulfilled' && !teamsRes.value.error && teamsRes.value.data) {
-        localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(teamsRes.value.data));
+        const currentTeams: any[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.TEAMS) || '[]');
+        const localMap = new Map<string, any>(currentTeams.map((t) => [t.id, t]));
+        const mergedTeams = teamsRes.value.data.map((t: any) => {
+          const local = localMap.get(t.id);
+          return {
+            ...t,
+            leader_id: local?.leader_id,
+            leader_name: local?.leader_name,
+            leader_email: local?.leader_email,
+          };
+        });
+        localStorage.setItem(STORAGE_KEYS.TEAMS, JSON.stringify(mergedTeams));
         hasChanges = true;
       }
 
@@ -89,49 +88,17 @@ export const CloudSyncService = {
 
       // Hydrate Applications
       if (appsRes.status === 'fulfilled' && !appsRes.value.error && appsRes.value.data) {
-        localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(appsRes.value.data));
-        hasChanges = true;
-      }
-
-      // Hydrate Notes
-      if (notesRes.status === 'fulfilled' && !notesRes.value.error && notesRes.value.data) {
-        localStorage.setItem(STORAGE_KEYS.NOTES, JSON.stringify(notesRes.value.data));
-        hasChanges = true;
-      }
-
-      // Hydrate Status History
-      if (historyRes.status === 'fulfilled' && !historyRes.value.error && historyRes.value.data) {
-        localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(historyRes.value.data));
-        hasChanges = true;
-      }
-
-      // Hydrate Users & Passwords
-      if (usersRes.status === 'fulfilled' && !usersRes.value.error && usersRes.value.data) {
-        const usersData = usersRes.value.data;
-        const profiles: UserProfile[] = usersData.map((u: any) => ({
-          id: u.id,
-          email: u.email,
-          full_name: u.full_name,
-          role: u.role,
-          phone: u.phone,
-          created_at: u.created_at,
-        }));
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(profiles));
-
-        // Build password lookup
-        const passwords: Record<string, string> = {};
-        usersData.forEach((u: any) => {
-          if (u.email && u.password) {
-            passwords[u.email.toLowerCase().trim()] = u.password;
-          }
+        const currentApps: any[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPLICATIONS) || '[]');
+        const localAppMap = new Map<string, any>(currentApps.map((a) => [a.id, a]));
+        const mergedApps = appsRes.value.data.map((a: any) => {
+          const local = localAppMap.get(a.id);
+          return {
+            ...a,
+            answers: local?.answers || {},
+            notes_count: local?.notes_count || 0,
+          };
         });
-        localStorage.setItem(STORAGE_KEYS.PASSWORDS, JSON.stringify(passwords));
-        hasChanges = true;
-      }
-
-      // Hydrate Activity Logs
-      if (activityRes.status === 'fulfilled' && !activityRes.value.error && activityRes.value.data) {
-        localStorage.setItem(STORAGE_KEYS.ACTIVITY, JSON.stringify(activityRes.value.data));
+        localStorage.setItem(STORAGE_KEYS.APPLICATIONS, JSON.stringify(mergedApps));
         hasChanges = true;
       }
 
@@ -148,46 +115,16 @@ export const CloudSyncService = {
     }
   },
 
-  // Push local records to Supabase (e.g. migration of data created offline/locally)
   async pushAllLocalToCloud(): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
-
     try {
-      const teams = JSON.parse(localStorage.getItem(STORAGE_KEYS.TEAMS) || '[]');
-      const configs = JSON.parse(localStorage.getItem(STORAGE_KEYS.FORM_CONFIGS) || '[]');
-      const apps = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPLICATIONS) || '[]');
-      const notes = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTES) || '[]');
-      const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-      const passwords = JSON.parse(localStorage.getItem(STORAGE_KEYS.PASSWORDS) || '{}');
-
-      if (teams.length > 0) {
-        await client.from('teams').upsert(teams, { onConflict: 'id' });
-      }
-      if (configs.length > 0) {
-        await client.from('form_configs').upsert(configs, { onConflict: 'id' });
-      }
-      if (apps.length > 0) {
-        await client.from('applications').upsert(apps, { onConflict: 'id' });
-      }
-      if (notes.length > 0) {
-        await client.from('application_notes').upsert(notes, { onConflict: 'id' });
-      }
-
-      if (users.length > 0) {
-        const usersToUpsert = users.map((u: any) => ({
-          id: u.id,
-          email: u.email,
-          full_name: u.full_name,
-          role: u.role,
-          phone: u.phone || '',
-          password: passwords[u.email.toLowerCase().trim()] || 'admin123',
-          created_at: u.created_at || new Date().toISOString(),
-        }));
-        await client.from('users').upsert(usersToUpsert, { onConflict: 'id' });
+      const teams: Team[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.TEAMS) || '[]');
+      for (const t of teams) {
+        await this.pushTeam(t);
       }
     } catch (err) {
-      console.error('Failed pushing local cache to cloud:', err);
+      console.error('Failed pushing local to cloud:', err);
     }
   },
 
@@ -213,15 +150,51 @@ export const CloudSyncService = {
     }
   },
 
-  // Push single mutations to Supabase in background
+  // Push single team mutation to Supabase in background
   async pushTeam(team: Team, formConfig?: FormConfig): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
 
     try {
-      await client.from('teams').upsert(team, { onConflict: 'id' });
+      const cleanTeam = {
+        id: team.id,
+        name: team.name,
+        description: team.description || '',
+        slug: team.slug,
+        status: team.status || 'active',
+        logo_url: team.logo_url || null,
+        created_at: team.created_at || new Date().toISOString(),
+        updated_at: team.updated_at || new Date().toISOString(),
+      };
+      const { error: tErr } = await client.from('teams').upsert(cleanTeam, { onConflict: 'id' });
+      if (tErr) {
+        console.error('Cloud team upsert error:', tErr);
+      } else {
+        console.log('Successfully posted team to Supabase:', team.name);
+      }
+
       if (formConfig) {
-        await client.from('form_configs').upsert(formConfig, { onConflict: 'id' });
+        const cleanConfig = {
+          id: formConfig.id,
+          team_id: formConfig.team_id,
+          title: formConfig.title,
+          description: formConfig.description || '',
+          welcome_message: formConfig.welcome_message || '',
+          submit_button_text: formConfig.submit_button_text || 'Submit Volunteer Application',
+          success_message:
+            formConfig.success_message ||
+            'Thank you for your interest in joining MAQAM-E-JOUD Foundation.',
+          slug: formConfig.slug,
+          status: formConfig.status || 'published',
+          published_version: formConfig.published_version || 1,
+          fields: formConfig.fields || [],
+          created_at: formConfig.created_at || new Date().toISOString(),
+          updated_at: formConfig.updated_at || new Date().toISOString(),
+        };
+        const { error: cErr } = await client
+          .from('form_configs')
+          .upsert(cleanConfig, { onConflict: 'id' });
+        if (cErr) console.error('Cloud form config upsert error:', cErr);
       }
     } catch (err) {
       console.error('Cloud team push failed:', err);
@@ -233,7 +206,17 @@ export const CloudSyncService = {
     if (!client) return;
 
     try {
-      await client.from('teams').update(updates).eq('id', id);
+      const allowedKeys = ['name', 'description', 'slug', 'status', 'logo_url'];
+      const cleanUpdates: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+      allowedKeys.forEach((k) => {
+        if ((updates as any)[k] !== undefined) {
+          cleanUpdates[k] = (updates as any)[k];
+        }
+      });
+      const { error } = await client.from('teams').update(cleanUpdates).eq('id', id);
+      if (error) console.error('Cloud team update error:', error);
     } catch (err) {
       console.error('Cloud team update failed:', err);
     }
@@ -256,7 +239,27 @@ export const CloudSyncService = {
     if (!client) return;
 
     try {
-      await client.from('form_configs').upsert(config, { onConflict: 'id' });
+      const cleanConfig = {
+        id: config.id,
+        team_id: config.team_id,
+        title: config.title,
+        description: config.description || '',
+        welcome_message: config.welcome_message || '',
+        submit_button_text: config.submit_button_text || 'Submit Volunteer Application',
+        success_message:
+          config.success_message ||
+          'Thank you for your interest in joining MAQAM-E-JOUD Foundation.',
+        slug: config.slug,
+        status: config.status || 'published',
+        published_version: config.published_version || 1,
+        fields: config.fields || [],
+        created_at: config.created_at || new Date().toISOString(),
+        updated_at: config.updated_at || new Date().toISOString(),
+      };
+      const { error } = await client
+        .from('form_configs')
+        .upsert(cleanConfig, { onConflict: 'id' });
+      if (error) console.error('Cloud form config push error:', error);
     } catch (err) {
       console.error('Cloud form config push failed:', err);
     }
@@ -267,7 +270,24 @@ export const CloudSyncService = {
     if (!client) return;
 
     try {
-      await client.from('applications').insert(app);
+      const cleanApp = {
+        id: app.id,
+        reference_number: app.reference_number,
+        team_id: app.team_id,
+        form_version_id: app.form_version_id || null,
+        full_name: app.full_name,
+        phone: app.phone,
+        email: app.email,
+        status: app.status || 'new',
+        submitted_at: app.submitted_at || new Date().toISOString(),
+        created_at: app.created_at || new Date().toISOString(),
+      };
+      const { error: aErr } = await client.from('applications').insert(cleanApp);
+      if (aErr) {
+        console.error('Cloud application insert error:', aErr);
+      } else {
+        console.log('Successfully posted application to Supabase:', app.reference_number);
+      }
     } catch (err) {
       console.error('Cloud application push failed:', err);
     }
@@ -284,14 +304,6 @@ export const CloudSyncService = {
 
     try {
       await client.from('applications').update({ status }).eq('id', id);
-      await client.from('application_status_history').insert({
-        id: `hist_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        application_id: id,
-        old_status: oldStatus,
-        new_status: status,
-        changed_by_name: changedByName,
-        changed_at: new Date().toISOString(),
-      });
     } catch (err) {
       console.error('Cloud application status update failed:', err);
     }
@@ -303,8 +315,6 @@ export const CloudSyncService = {
 
     try {
       await client.from('applications').delete().eq('id', id);
-      await client.from('application_notes').delete().eq('application_id', id);
-      await client.from('application_status_history').delete().eq('application_id', id);
     } catch (err) {
       console.error('Cloud application delete failed:', err);
     }
@@ -313,7 +323,6 @@ export const CloudSyncService = {
   async pushNote(note: ApplicationNote): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
-
     try {
       await client.from('application_notes').insert(note);
     } catch (err) {
@@ -324,7 +333,6 @@ export const CloudSyncService = {
   async pushUser(user: UserProfile, password = 'password123'): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
-
     try {
       await client.from('users').upsert(
         {
@@ -346,7 +354,6 @@ export const CloudSyncService = {
   async updateUserPassword(email: string, newPassword: string): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
-
     try {
       await client
         .from('users')
@@ -360,7 +367,6 @@ export const CloudSyncService = {
   async deleteUser(id: string): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
-
     try {
       await client.from('users').delete().eq('id', id);
     } catch (err) {
@@ -371,7 +377,6 @@ export const CloudSyncService = {
   async pushActivity(activity: ActivityLog): Promise<void> {
     const client = getSupabaseClient();
     if (!client) return;
-
     try {
       await client.from('activity_logs').insert(activity);
     } catch (err) {
@@ -379,4 +384,3 @@ export const CloudSyncService = {
     }
   },
 };
-
