@@ -25,12 +25,12 @@ const STORAGE_KEYS = {
   NOTES: 'mj_notes_prod_v2',
   HISTORY: 'mj_history_prod_v2',
   ACTIVITY: 'mj_activity_prod_v2',
-  CURRENT_USER: 'mj_current_user_prod_v2',
+  CURRENT_USER: 'mj_current_user_session_v3',
   PASSWORDS: 'mj_passwords_prod_v2',
 };
 
-// Automatic purge of legacy demo/temp data in the browser
-if (typeof window !== 'undefined' && !localStorage.getItem('mj_clean_prod_initialized_v2')) {
+// Automatic purge of legacy demo/temp data and stale auto-login sessions
+if (typeof window !== 'undefined' && !localStorage.getItem('mj_clean_prod_initialized_v3')) {
   const legacyKeys = [
     'mj_teams_v1',
     'mj_users_v1',
@@ -44,9 +44,11 @@ if (typeof window !== 'undefined' && !localStorage.getItem('mj_clean_prod_initia
     'mj_activity_v1',
     'mj_current_user_v1',
     'mj_current_user_id',
+    'mj_current_user_prod_v2',
+    'mj_session_user_v2',
   ];
   legacyKeys.forEach((key) => localStorage.removeItem(key));
-  localStorage.setItem('mj_clean_prod_initialized_v2', 'true');
+  localStorage.setItem('mj_clean_prod_initialized_v3', 'true');
 }
 
 // Only keep the official Admin login

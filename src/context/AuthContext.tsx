@@ -22,7 +22,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   const loadUserData = (currentUserId?: string) => {
-    const savedUserId = currentUserId || localStorage.getItem('mj_current_user_prod_v2');
+    // Purge legacy auto-login sessions
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('mj_current_user_prod_v2');
+      localStorage.removeItem('mj_current_user_v1');
+    }
+
+    const savedUserId = currentUserId || localStorage.getItem('mj_current_user_session_v3');
     const allUsers = StorageService.getUsers();
 
     if (savedUserId) {
@@ -37,17 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Default to admin session if no active session yet
-    const adminUser = allUsers.find((u) => u.role === 'admin') || allUsers[0];
-    if (adminUser) {
-      setUser(adminUser);
-      localStorage.setItem('mj_current_user_prod_v2', adminUser.id);
-      const teams = StorageService.getUserTeams(adminUser.id);
-      setAssignedTeams(teams);
-      setActiveTeam(teams.length > 0 ? teams[0] : null);
-    } else {
-      setUser(null);
-    }
+    // STRICT: Never default or auto-login. User remains null until explicit login with credentials.
+    setUser(null);
+    setAssignedTeams([]);
+    setActiveTeam(null);
     setIsLoading(false);
   };
 
@@ -56,15 +55,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = (email: string, password = ''): boolean => {
-    const found = StorageService.getUserByEmail(email);
+    const trimmed = email.trim();
+    const found = StorageService.getUserByEmail(trimmed);
     if (!found) return false;
 
-    if (password && !StorageService.verifyPassword(email, password)) {
+    // Password is required for all logins
+    if (!password || !StorageService.verifyPassword(trimmed, password)) {
       return false;
     }
 
     setUser(found);
-    localStorage.setItem('mj_current_user_prod_v2', found.id);
+    localStorage.setItem('mj_current_user_session_v3', found.id);
     const teams = StorageService.getUserTeams(found.id);
     setAssignedTeams(teams);
     setActiveTeam(teams.length > 0 ? teams[0] : null);
@@ -75,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setAssignedTeams([]);
     setActiveTeam(null);
+    localStorage.removeItem('mj_current_user_session_v3');
     localStorage.removeItem('mj_current_user_prod_v2');
   };
 
