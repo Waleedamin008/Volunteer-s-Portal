@@ -153,6 +153,12 @@ export const StorageService = {
     return Boolean(passwordAttempt && passwordAttempt.length >= 4);
   },
 
+  getUserPassword(email: string): string {
+    const passwords = getStored<Record<string, string>>(STORAGE_KEYS.PASSWORDS, INITIAL_PASSWORDS);
+    const normalized = email.toLowerCase().trim();
+    return passwords[normalized] || 'leader123';
+  },
+
   setUserPassword(email: string, newPassword: string): void {
     const passwords = getStored<Record<string, string>>(STORAGE_KEYS.PASSWORDS, INITIAL_PASSWORDS);
     passwords[email.toLowerCase().trim()] = newPassword;

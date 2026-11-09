@@ -47,6 +47,7 @@ export const AdminLeadersPage: React.FC = () => {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [copiedLeaderId, setCopiedLeaderId] = useState<string | null>(null);
 
   const teams = StorageService.getTeams();
 
@@ -59,6 +60,29 @@ export const AdminLeadersPage: React.FC = () => {
     window.addEventListener('mj_data_synced', handleSync);
     return () => window.removeEventListener('mj_data_synced', handleSync);
   }, []);
+
+  const handleCopyLeaderCredentials = (leader: UserProfile) => {
+    const password = StorageService.getUserPassword(leader.email);
+    const loginUrl = `${window.location.origin}/login`;
+    const assigned = StorageService.getUserTeams(leader.id);
+    const teamName = assigned.length > 0 ? assigned.map((t) => t.name).join(', ') : 'Unassigned';
+
+    const text = [
+      `MAQAM-E-JOUD Foundation — Team Leader Portal Access`,
+      `Portal Link: ${loginUrl}`,
+      `Email: ${leader.email}`,
+      `Password: ${password}`,
+      `Assigned Team: ${teamName}`,
+    ].join('\n');
+
+    navigator.clipboard.writeText(text);
+    setCopiedLeaderId(leader.id);
+    setNotificationMsg(`Copied credentials for ${leader.full_name} to clipboard!`);
+    setTimeout(() => {
+      setCopiedLeaderId(null);
+      setNotificationMsg('');
+    }, 3000);
+  };
 
   const handleCreateLeader = (e: React.FormEvent) => {
     e.preventDefault();
@@ -304,6 +328,23 @@ export const AdminLeadersPage: React.FC = () => {
 
                     <div className="pt-2 flex items-center gap-2">
                       <button
+                        onClick={() => handleCopyLeaderCredentials(leader)}
+                        className="py-2 px-3 bg-white hover:bg-brand-warmIvory/60 border border-gray-200 text-brand-navy text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        title={`Copy portal link, email, and password for ${leader.full_name}`}
+                      >
+                        {copiedLeaderId === leader.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-emerald-700">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5 text-brand-gold" />
+                            <span>Copy Credentials</span>
+                          </>
+                        )}
+                      </button>
+                      <button
                         onClick={() => openPasswordModal(leader)}
                         className="flex-1 py-2 px-3 bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 text-brand-navy text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
@@ -392,6 +433,23 @@ export const AdminLeadersPage: React.FC = () => {
 
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleCopyLeaderCredentials(leader)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-navy bg-white hover:bg-brand-warmIvory/60 border border-gray-200 hover:border-brand-gold/40 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                              title={`Copy portal link, email, and password for ${leader.full_name}`}
+                            >
+                              {copiedLeaderId === leader.id ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span className="text-emerald-700">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5 text-brand-gold" />
+                                  <span>Copy Credentials</span>
+                                </>
+                              )}
+                            </button>
                             <button
                               onClick={() => openPasswordModal(leader)}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-navy bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 rounded-lg transition-colors cursor-pointer shadow-2xs"
