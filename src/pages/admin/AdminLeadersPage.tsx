@@ -75,7 +75,29 @@ export const AdminLeadersPage: React.FC = () => {
       `Assigned Team: ${teamName}`,
     ].join('\n');
 
-    navigator.clipboard.writeText(text);
+    const copyText = (val: string) => {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(val).catch(() => fallback(val));
+      } else {
+        fallback(val);
+      }
+    };
+    const fallback = (val: string) => {
+      const textarea = document.createElement('textarea');
+      textarea.value = val;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
+      document.body.removeChild(textarea);
+    };
+
+    copyText(text);
     setCopiedLeaderId(leader.id);
     setNotificationMsg(`Copied credentials for ${leader.full_name} to clipboard!`);
     setTimeout(() => {
