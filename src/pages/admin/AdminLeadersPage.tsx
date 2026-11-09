@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   UserCheck,
   Plus,
@@ -15,9 +15,13 @@ import {
   Check,
   Sparkles,
   Trash2,
+  Users,
+  Search,
+  RefreshCw,
 } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { StorageService } from '../../lib/storage';
+import { CloudSyncService } from '../../lib/cloudSync';
 import { useAuth } from '../../context/AuthContext';
 import { useConfirm } from '../../context/ConfirmationContext';
 import { UserProfile, Team } from '../../types';
@@ -28,6 +32,8 @@ export const AdminLeadersPage: React.FC = () => {
   const [users, setUsers] = useState<UserProfile[]>(
     StorageService.getUsers().filter((u) => u.role === 'team_leader')
   );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Create Leader Modal States
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -55,11 +61,51 @@ export const AdminLeadersPage: React.FC = () => {
     setUsers(StorageService.getUsers().filter((u) => u.role === 'team_leader'));
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleSync = () => refreshList();
     window.addEventListener('mj_data_synced', handleSync);
     return () => window.removeEventListener('mj_data_synced', handleSync);
   }, []);
+
+  // Keyboard accessibility: Escape closes open modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (passwordModalLeader) setPasswordModalLeader(null);
+        if (isCreateModalOpen) setIsCreateModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [passwordModalLeader, isCreateModalOpen]);
+
+  const handleRefreshLeaders = async () => {
+    setIsRefreshing(true);
+    try {
+      await CloudSyncService.pullAllFromCloud();
+    } catch (err) {
+      console.warn('Sync refresh error:', err);
+    }
+    refreshList();
+    setNotificationMsg(`Refreshed ${users.length} active team leaders.`);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setNotificationMsg('');
+    }, 2500);
+  };
+
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm.trim()) return users;
+    const term = searchTerm.toLowerCase().trim();
+    return users.filter((u) => {
+      const matchName = u.full_name.toLowerCase().includes(term);
+      const matchEmail = u.email.toLowerCase().includes(term);
+      const matchPhone = u.phone?.toLowerCase().includes(term);
+      const assigned = StorageService.getUserTeams(u.id);
+      const matchTeam = assigned.some((t) => t.name.toLowerCase().includes(term));
+      return matchName || matchEmail || matchPhone || matchTeam;
+    });
+  }, [users, searchTerm]);
 
   const handleCopyLeaderCredentials = (leader: UserProfile) => {
     const password = StorageService.getUserPassword(leader.email);
@@ -215,7 +261,30 @@ export const AdminLeadersPage: React.FC = () => {
     if (!newPassword || !passwordModalLeader) return;
     const loginUrl = `${window.location.origin}/login`;
     const message = `MAQAM-E-JOUD Foundation — Team Leader Portal Access\nPortal Login URL: ${loginUrl}\nEmail: ${passwordModalLeader.email}\nPassword: ${newPassword}`;
-    navigator.clipboard.writeText(message);
+
+    const copyText = (val: string) => {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(val).catch(() => fallback(val));
+      } else {
+        fallback(val);
+      }
+    };
+    const fallback = (val: string) => {
+      const textarea = document.createElement('textarea');
+      textarea.value = val;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {
+        console.error('Failed to copy', err);
+      }
+      document.body.removeChild(textarea);
+    };
+
+    copyText(message);
     setCopiedPassword(true);
     setTimeout(() => setCopiedPassword(false), 2500);
   };
@@ -276,18 +345,75 @@ export const AdminLeadersPage: React.FC = () => {
         </div>
       )}
 
+      {/* Search & Quick Filter Bar */}
+      {users.length > 0 && (
+        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="w-4 h-4 text-brand-mutedGray absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search leaders by name, email, or assigned team..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-gray-50 border border-gray-200 rounded-lg text-brand-navy focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-gold/50 transition-all"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer rounded"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-brand-mutedGray">
+              Showing <strong>{filteredUsers.length}</strong> of {users.length} leaders
+            </span>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="text-xs text-brand-gold hover:underline font-semibold cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Leaders Card / Table Container */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-brand-navy">Authorized Team Leaders</h3>
             <p className="text-xs text-brand-mutedGray mt-0.5">
               Each leader is granted restricted access strictly to their assigned team's applications
             </p>
           </div>
-          <span className="text-xs font-semibold text-brand-navy bg-brand-warmIvory/60 border border-brand-gold/30 px-2.5 py-1 rounded-lg">
-            {users.length} Active {users.length === 1 ? 'Leader' : 'Leaders'}
-          </span>
+          <button
+            type="button"
+            onClick={handleRefreshLeaders}
+            className="self-start sm:self-auto inline-flex items-center gap-1.5 text-xs font-semibold text-brand-navy bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 px-3 py-1.5 rounded-lg shadow-2xs transition-all cursor-pointer shrink-0 whitespace-nowrap active:scale-95 group"
+            title="Click to refresh leaders and live cloud sync"
+          >
+            <Users
+              className={`w-3.5 h-3.5 text-brand-gold shrink-0 transition-transform ${
+                isRefreshing ? 'animate-spin' : 'group-hover:scale-110'
+              }`}
+            />
+            <span>
+              {users.length} Active {users.length === 1 ? 'Leader' : 'Leaders'}
+            </span>
+            {isRefreshing && (
+              <span className="text-[10px] text-brand-gold font-normal animate-pulse">
+                (Syncing...)
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Empty State */}
@@ -301,6 +427,7 @@ export const AdminLeadersPage: React.FC = () => {
               Create leader credentials to assign dedicated supervisors to each volunteer recruitment pipeline.
             </p>
             <button
+              type="button"
               onClick={() => setIsCreateModalOpen(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-navy hover:bg-brand-darkNavy text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
             >
@@ -308,11 +435,25 @@ export const AdminLeadersPage: React.FC = () => {
               <span>Create First Leader</span>
             </button>
           </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="py-10 px-4 text-center">
+            <p className="text-sm font-semibold text-brand-navy">No leaders match "{searchTerm}"</p>
+            <p className="text-xs text-brand-mutedGray mt-1 mb-3">
+              Try searching by a different name, email, or team.
+            </p>
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-navy hover:bg-brand-darkNavy text-white text-xs font-semibold rounded-lg cursor-pointer"
+            >
+              <span>View All Leaders</span>
+            </button>
+          </div>
         ) : (
           <>
             {/* Mobile Cards View (< sm screens) */}
             <div className="sm:hidden divide-y divide-gray-100">
-              {users.map((leader) => {
+              {filteredUsers.map((leader) => {
                 const assignedTeams = StorageService.getUserTeams(leader.id);
                 return (
                   <div key={leader.id} className="p-4 space-y-3">
@@ -328,9 +469,19 @@ export const AdminLeadersPage: React.FC = () => {
                           <p className="text-xs text-brand-mutedGray truncate">{leader.email}</p>
                         </div>
                       </div>
-                      <span className="text-[10px] text-brand-gold bg-brand-warmIvory/60 px-2 py-0.5 rounded font-semibold uppercase shrink-0">
-                        Leader
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-brand-gold bg-brand-warmIvory/60 border border-brand-gold/30 px-2 py-0.5 rounded font-semibold uppercase">
+                          Leader
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteLeader(leader)}
+                          className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                          title={`Delete leader ${leader.full_name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 text-xs pt-1">
@@ -348,37 +499,33 @@ export const AdminLeadersPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="pt-2 flex items-center gap-2">
+                    <div className="pt-1.5 grid grid-cols-2 gap-2">
                       <button
+                        type="button"
                         onClick={() => handleCopyLeaderCredentials(leader)}
-                        className="py-2 px-3 bg-white hover:bg-brand-warmIvory/60 border border-gray-200 text-brand-navy text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                        className="py-2 px-2.5 bg-white hover:bg-brand-warmIvory/60 border border-gray-200 text-brand-navy text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs whitespace-nowrap active:scale-95"
                         title={`Copy portal link, email, and password for ${leader.full_name}`}
                       >
                         {copiedLeaderId === leader.id ? (
                           <>
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                             <span className="text-emerald-700">Copied!</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="w-3.5 h-3.5 text-brand-gold" />
+                            <Copy className="w-3.5 h-3.5 text-brand-gold shrink-0" />
                             <span>Copy Credentials</span>
                           </>
                         )}
                       </button>
                       <button
+                        type="button"
                         onClick={() => openPasswordModal(leader)}
-                        className="flex-1 py-2 px-3 bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 text-brand-navy text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="py-2 px-2.5 bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 text-brand-navy text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs whitespace-nowrap active:scale-95"
+                        title={`Change password for ${leader.full_name}`}
                       >
-                        <KeyRound className="w-3.5 h-3.5 text-brand-gold" />
+                        <KeyRound className="w-3.5 h-3.5 text-brand-gold shrink-0" />
                         <span>Change Password</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLeader(leader)}
-                        className="p-2 text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors cursor-pointer shrink-0"
-                        title={`Delete leader ${leader.full_name}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -399,7 +546,7 @@ export const AdminLeadersPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-brand-charcoal">
-                  {users.map((leader) => {
+                  {filteredUsers.map((leader) => {
                     const assignedTeams = StorageService.getUserTeams(leader.id);
                     return (
                       <tr key={leader.id} className="hover:bg-brand-warmIvory/10 transition-colors">
@@ -456,31 +603,34 @@ export const AdminLeadersPage: React.FC = () => {
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
+                              type="button"
                               onClick={() => handleCopyLeaderCredentials(leader)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-navy bg-white hover:bg-brand-warmIvory/60 border border-gray-200 hover:border-brand-gold/40 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-navy bg-white hover:bg-brand-warmIvory/60 border border-gray-200 hover:border-brand-gold/40 rounded-lg transition-colors cursor-pointer shadow-2xs whitespace-nowrap active:scale-95"
                               title={`Copy portal link, email, and password for ${leader.full_name}`}
                             >
                               {copiedLeaderId === leader.id ? (
                                 <>
-                                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                   <span className="text-emerald-700">Copied!</span>
                                 </>
                               ) : (
                                 <>
-                                  <Copy className="w-3.5 h-3.5 text-brand-gold" />
+                                  <Copy className="w-3.5 h-3.5 text-brand-gold shrink-0" />
                                   <span>Copy Credentials</span>
                                 </>
                               )}
                             </button>
                             <button
+                              type="button"
                               onClick={() => openPasswordModal(leader)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-navy bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 rounded-lg transition-colors cursor-pointer shadow-2xs"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-brand-navy bg-brand-warmIvory/60 hover:bg-brand-warmIvory border border-brand-gold/40 rounded-lg transition-colors cursor-pointer shadow-2xs whitespace-nowrap active:scale-95"
                               title={`Change password for ${leader.full_name}`}
                             >
-                              <KeyRound className="w-3.5 h-3.5 text-brand-gold" />
+                              <KeyRound className="w-3.5 h-3.5 text-brand-gold shrink-0" />
                               <span>Change Password</span>
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleDeleteLeader(leader)}
                               className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-lg transition-colors cursor-pointer"
                               title={`Delete leader ${leader.full_name}`}
@@ -501,8 +651,14 @@ export const AdminLeadersPage: React.FC = () => {
 
       {/* Change Leader Password Modal */}
       {passwordModalLeader && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 my-auto">
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={() => setPasswordModalLeader(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-brand-warmIvory/70 border border-brand-gold/30 flex items-center justify-center text-brand-navy">
@@ -516,6 +672,7 @@ export const AdminLeadersPage: React.FC = () => {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setPasswordModalLeader(null)}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded-md cursor-pointer"
               >
@@ -686,8 +843,14 @@ export const AdminLeadersPage: React.FC = () => {
 
       {/* Create Leader Account Modal */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 my-auto">
+        <div
+          className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={() => setIsCreateModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-brand-warmIvory/60 flex items-center justify-center text-brand-navy">
